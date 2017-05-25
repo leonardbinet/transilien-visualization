@@ -1,0 +1,34 @@
+
+.jumbotron {
+    padding: 4rem 2rem;
+    padding-top: 2rem;
+    padding-right: 2rem;
+    padding-bottom: 2rem;
+    padding-left: 2rem;
+}
+
+.section { 
+    stroke: #a15256;
+    stroke-width: 4;
+    fill: none;
+}
+
+.station { 
+    opacity: .6;
+    fill: gray;
+}
+
+.tooltip {	
+    position: absolute;			
+    text-align: center;			
+    width: 200px;
+    min-height: 30px;
+    overflow: hidden;
+    padding: 2px;
+    font-size: xx-small;
+    font: sans-serif;		
+    background: lightsteelblue;	
+    border: 0px;		
+    border-radius: 8px;			
+    pointer-events: none;			
+}

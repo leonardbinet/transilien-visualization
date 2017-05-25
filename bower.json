@@ -1,0 +1,14 @@
+{
+  "name": "transilien-viz",
+  "version": "0.0.0",
+  "dependencies": {
+    "d3": "~3.4.1",
+    "d3-tip": "~0.6.4",
+    "underscore": "~1.6.0",
+    "moment": "~2.6.0",
+    "es6-shim": "~0.10.1",
+    "jquery": "~2.1.0",
+    "jquery-ui":"~1.12.1",
+    "bootstrap": "~4.0.0"
+  }
+}
