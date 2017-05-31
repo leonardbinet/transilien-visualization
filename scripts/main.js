@@ -259,6 +259,8 @@
 
         // Update schedule
         trainsGroups.select(".train.scheduled")
+            .filter(function(d){
+                return isActiveScheduled.bind(this, unixSeconds)(d)&& (d.atTime.scheduled.pos && d.atTime.scheduled.acceptedEdge)})
             .transition()
             .duration(ttime)
             .attr('cx', function (d) { return d.atTime.scheduled.pos[0]; })
@@ -269,6 +271,8 @@
 
         // Update observed
         trainsGroups.select(".train.observed")
+            .filter(function(d){
+                return isActiveObserved.bind(this, unixSeconds)(d)&& (d.atTime.observed.pos && d.atTime.observed.acceptedEdge)})
             .transition()
             .duration(ttime)
             .attr('cx', function (d) { return d.atTime.observed.pos[0]; })
@@ -508,20 +512,21 @@
         var sfrom = train.stops[i];
         var sto = train.stops[i + 1];
         
-        if (!sfrom || !sto){
+        var sacceptedEdge, sratio, spos;
+        
+        if (sfrom && sto){
             // console.log("SCHEDULE: Could not find previous or next for trip "+train.trip);
-            return;
+            // Check if real edge of precise graph
+            sacceptedEdge = global.preciseGraph.isEdge(sfrom.stop_id, sto.stop_id);
+            //console.log("Train "+ train.trip+" is not real edge between "+from.stop_id+" and "+ to.stop_id+ "."); 
+
+            // Find ratio
+            sratio = (unixSeconds - sfrom.scheduledTime) / (sto.scheduledTime - sfrom.scheduledTime);
+
+            // compute atTime object given: from, to and ratio
+            spos = placeWithOffset(sfrom, sto, sratio);
         }
         
-        // Check if real edge of precise graph
-        var sacceptedEdge = global.preciseGraph.isEdge(sfrom.stop_id, sto.stop_id);
-        //console.log("Train "+ train.trip+" is not real edge between "+from.stop_id+" and "+ to.stop_id+ "."); 
-    
-        // Find ratio
-        var sratio = (unixSeconds - sfrom.scheduledTime) / (sto.scheduledTime - sfrom.scheduledTime);
-        
-        // compute atTime object given: from, to and ratio
-        var spos = placeWithOffset(sfrom, sto, sratio);
         
         var scheduled = {
             from: sfrom,
@@ -541,29 +546,33 @@
         var efrom = train.stops[j];
         var eto = train.stops[j + 1];
         
-        if (!efrom || !eto){
-            console.log("OBSERVED Could not find previous or next for trip "+train.trip);
-            return;
-        }
+        var eacceptedEdge, eratio, epos, previousEstimatedDelay, nextEstimatedDelay;
         
-        // Check if real edge of precise graph
-        var eacceptedEdge = global.preciseGraph.isEdge(efrom.stop_id, eto.stop_id);
-        //console.log("Train "+ train.trip+" is not real edge between "+from.stop_id+" and "+ to.stop_id+ "."); 
+        if (efrom && eto){
+            // console.log("OBSERVED Could not find previous or next for trip "+train.trip);
+            // Check if real edge of precise graph
+            eacceptedEdge = global.preciseGraph.isEdge(efrom.stop_id, eto.stop_id);
+            //console.log("Train "+ train.trip+" is not real edge between "+from.stop_id+" and "+ to.stop_id+ "."); 
     
-        // Find ratio
-        var eratio = (unixSeconds - efrom.estimatedTime) / (eto.estimatedTime - efrom.estimatedTime);
+            // Find ratio
+            eratio = (unixSeconds - efrom.estimatedTime) / (eto.estimatedTime - efrom.estimatedTime);
         
-        // compute atTime object given: from, to and ratio
-        var epos = placeWithOffset(efrom, eto, eratio);
-        
+            // compute atTime object given: from, to and ratio
+            epos = placeWithOffset(efrom, eto, eratio);
+            
+            previousEstimatedDelay = efrom.estimatedDelay;
+            nextEstimatedDelay = eto.estimatedDelay;
+            
+        }
+
         var observed = {
             from: efrom,
             to: eto,
             timeRatio: eratio,
             pos: epos,
             acceptedEdge: eacceptedEdge,
-            previousEstimatedDelay: efrom.estimatedDelay,
-            nextEstimatedDelay: eto.estimatedDelay
+            previousEstimatedDelay: previousEstimatedDelay,
+            nextEstimatedDelay: nextEstimatedDelay
         };
         
         train.atTime = {
@@ -787,23 +796,27 @@
         /* returns in following format: array of:
         {
             date: timestamp,
-            section1: NbOfActiveTrains,
-            section2: NbOfActiveTrains,
-            section3: NbOfActiveTrains
+            total: NbOfActiveTrains,
+            meanDelay: meanDelay
         }
         
         */
         global.activeTrainsData = [];
-        for (var i=global.minUnixSeconds; i<global.maxUnixSeconds; i+=600){
+        for (var unixSeconds=global.minUnixSeconds; unixSeconds<global.maxUnixSeconds; unixSeconds+=600){
             
-            var active = global.trips.filter(function (d) {
-                return (d.begin < i && d.end > i);
+            var active = global.trips.filter(isActiveObserved.bind(this,unixSeconds));
+            
+            active.map(getPositionOfTrain.bind(this, unixSeconds))
+                .filter(function(train){
+                if (!train){return; }
             });
+
+            var meanDelay = _.reduce(active.map(function(trip){return trip.atTime.observed.previousEstimatedDelay;}), function(memo, num){ return memo + num; }, 0)/active.length;
             
             global.activeTrainsData.push({
-                date: i*1000,
-                id: ""+i*1000,
-                total: active.length
+                date: unixSeconds*1000,
+                total: active.length,
+                meanDelay: meanDelay
             });
         }
     }
