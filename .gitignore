@@ -1,7 +1,6 @@
 bower_components/*
 
-flathmap.html
+hidden/*
 
-H_geo.svg
-
-scripts/trains.js
+# To big
+*.pickle

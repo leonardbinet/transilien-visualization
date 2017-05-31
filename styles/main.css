@@ -1,3 +1,21 @@
+body {
+  padding-top: 70px;
+}
+
+section {
+    padding-top: 20px;
+    padding-bottom: 20px;
+
+}
+
+section.white {
+    background:white
+}
+
+section.grey {
+    background: rgba(245, 245, 245, 0.62)
+        
+}
 
 .jumbotron {
     padding: 4rem 2rem;
@@ -8,14 +26,21 @@
 }
 
 .section { 
-    stroke: #a15256;
-    stroke-width: 4;
+    stroke: steelblue;/*#a15256;*/
+    stroke-width: 2.75;
     fill: none;
+    opacity: .9;
+
 }
 
 .station { 
     opacity: .6;
     fill: gray;
+}
+
+/* for trains*/
+circle.train {
+    r: 4;
 }
 
 .tooltip {	

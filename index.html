@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Ligne H</title>
+        
+        <!-- Jquery slider css-->
+        <link rel="stylesheet" href="bower_components/jquery-ui/themes/base/jquery-ui.css">
+        
+        <!-- C3-->
+        <link rel="stylesheet" href="bower_components/c3/c3.css">
+        
+        <!-- Bootstrap core css-->
+        <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+        
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="styles/bootstrap-theme.min.css">
+                
+        <!-- Custom styles for map -->
+        <link rel="stylesheet" href="styles/main.css">
+
+    </head>
+    <body>
+        <nav class="navbar navbar-inverse navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="#">Transilien's H line</a>
+                </div>
+                <div id="navbar" class="navbar-collapse collapse">
+                </div><!--/.navbar-collapse -->
+            </div>
+        </nav>
+        
+        <section class="white">
+            <div class="container-fluid">
+                <div class="row">
+                    <div id="map" class="col-md-8">
+                    </div>
+                    <div class="col-md-4">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">Traffic status</h3>
+                            </div>
+                            <div class="panel-body">
+                                Here is some information about traffic at time <b id ="slider-text" ></b>
+                            </div>
+                            <!-- List group -->
+                              <ul class="list-group">
+                                <li class="list-group-item">Number of trains not departed yet: <b id="nbNotYetTrains"></b></li>
+                                <li class="list-group-item">Number of active trains: <b id="nbActiveTrains"></b></li>
+                                <li class="list-group-item">Number of arrived trains: <b id="nbFinishedTrains"></b></li>
+                              </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        
+        <!-- Slider -->
+        <section class="grey">
+            <div class="container">
+                <div class="row">
+                    <div id="slider"></div>
+                
+                    <br/>
+            
+                    <button id="button" type="button" class="btn btn-primary" data-toggle="button" aria-pressed="false" autocomplete="off">
+                    Timer
+                    </button> 
+                </div>
+            </div>
+        </section>
+        
+        <section class="white">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h3>Number of active trains during day</h3>
+                        <div id="stacked-area-chart-active-trains">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+        
+
+        
+        <!-- 3rd Party Dependencies -->
+        <script src="bower_components/es6-shim/es6-shim.js"></script>
+        <script src="bower_components/underscore/underscore.js"></script>
+        <script src="bower_components/moment/min/moment.min.js"></script>
+        <script src="bower_components/d3/d3.min.js"></script>
+        <script src="bower_components/jquery/dist/jquery.min.js"></script>
+        <script src="bower_components/jquery-ui/jquery-ui.js"></script>
+        <script src="bower_components/tether/dist/js/tether.min.js"></script>
+        <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+
+        <!-- D3 Plugins -->
+        <script src="bower_components/d3-tip/index.js"></script>
+        <!-- <script src="bower_components/britecharts/dist/bundled/britecharts.min.js"></script>-->
+        <script src="bower_components/c3/c3.js"></script>
+      
+        <!-- Custom -->
+        <script>
+            // on load, init global variable as H
+            window.H= {};
+        </script>
+        
+        <script src="scripts/activeTrainsHorizon.js"></script> 
+        <script src="scripts/common.js"></script>
+        <script src="scripts/dataloader.js"></script>
+        <script src="scripts/graphs.js"></script>
+        <script src="scripts/main.js"></script>
+
+    </body>
+</html>
