@@ -205,7 +205,7 @@
             .append('circle')
             .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
             .classed('active', function (d) { return d.trip === global.highlightedTrip; })
-            .classed('hover', function (d) { return d.trip === global.hoveredTrip; })
+            .classed('hover', function (d) { return (d.trip === global.hoveredTrip) && (global.displayScheduled) ; })
             .classed("train", true)
             .classed("scheduled", true)
             //.on('click', function (d) { highlightTrain(d); })
@@ -234,12 +234,12 @@
             .append('circle')
             .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
             .classed('active', function (d) { return d.trip === global.highlightedTrip; })
-            .classed('hover', function (d) { return d.trip === global.hoveredTrip; })
+            .classed('hover', function (d) { return ((d.trip === global.hoveredTrip) && (global.displayObserved)); })
             .classed("train", true)
             .classed("observed", true)
             //.on('click', function (d) { highlightTrain(d); })
-            //.on('mouseover', hoverTrain)
-            //.on('mouseout', unHoverAny)
+            .on('mouseover', hoverTrain)
+            .on('mouseout', unHoverAny)
             .on("click", function(d){console.log(d); console.log("observed")})
             .attr("r", 2)
             .attr("opacity", global.displayObserved)
@@ -653,7 +653,7 @@
         //hoveredTrip = d.trip;
         hoverAny(d);
         global.toolTip
-            .text("Train "+d.trip+" currently going from station "+ d.atTime.from.stop_id+" to station "+ d.atTime.to.stop_id+".");
+            .text("Train "+d.trip+" currently going from station "+ d.atTime.observed.from.stop_id+" to station "+ d.atTime.observed.to.stop_id+", has an estimated delay of "+d.atTime.observed.previousEstimatedDelay+" seconds.");
         }
     
     function hoverStation(d) {
@@ -700,7 +700,7 @@
             step: 2,
         orientation:"horizontal",
           animate: "slow",
-          value: min,
+          value: min+18000,
           min: min,
           max: max,
           slide: function( event, ui ) {
@@ -912,8 +912,8 @@
         global.hoveredTrip = null;
         
         // Scheduled or observed
-        global.displayScheduled = 1;
-        global.displayObserved = 0;
+        global.displayScheduled = 0;
+        global.displayObserved = 1;
         
         //// DATA IMPORT, PARSING, SCALING OF STATIONS
         // Stations are imported before because their coordinates are used for scaling, and then used to compute
