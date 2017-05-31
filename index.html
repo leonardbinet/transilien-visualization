@@ -23,6 +23,8 @@
 
     </head>
     <body>
+        
+        <!-- Nav bar -->
         <nav class="navbar navbar-inverse navbar-fixed-top">
             <div class="container">
                 <div class="navbar-header">
@@ -33,11 +35,16 @@
             </div>
         </nav>
         
+        <!-- Main map section -->
         <section class="white">
             <div class="container-fluid">
                 <div class="row">
+                    
+                    <!-- Map -->
                     <div id="map" class="col-md-8">
                     </div>
+                    
+                    <!-- Information panel -->
                     <div class="col-md-4">
                         <div class="panel panel-default">
                             <div class="panel-heading">
@@ -45,11 +52,29 @@
                             </div>
                             <div class="panel-body">
                                 Here is some information about traffic at time <b id ="slider-text" ></b>
+                                
                             </div>
                             <!-- List group -->
                               <ul class="list-group">
+                                <li class="list-group-item">
+                                    <button id="button" type="button" class="btn btn-default" data-toggle="button" aria-pressed="false" autocomplete="off">
+                                    Toggle Timer
+                                    </button> 
+                                </li>
+                                <li class="list-group-item">
+                                    <div class="btn-group" data-toggle="buttons">
+                                      <label class="btn btn-default active">
+                                        <input type="radio" name="options" id="scheduled" autocomplete="off" checked> Scheduled
+                                      </label>
+                                      <label class="btn btn-default">
+                                        <input type="radio" name="options" id="observed" autocomplete="off"> Observed
+                                      </label>
+                                    </div>
+                                </li>
                                 <li class="list-group-item">Number of trains not departed yet: <b id="nbNotYetTrains"></b></li>
-                                <li class="list-group-item">Number of active trains: <b id="nbActiveTrains"></b></li>
+                                <li class="list-group-item">
+                                    Number of active trains: <b id="nbActiveTrains"></b> (with <b id="nbDisplayError"></b> errors of display)
+                                </li>
                                 <li class="list-group-item">Number of arrived trains: <b id="nbFinishedTrains"></b></li>
                               </ul>
                         </div>
@@ -63,17 +88,26 @@
         <section class="grey">
             <div class="container">
                 <div class="row">
-                    <div id="slider"></div>
-                
-                    <br/>
-            
-                    <button id="button" type="button" class="btn btn-primary" data-toggle="button" aria-pressed="false" autocomplete="off">
-                    Timer
-                    </button> 
+                    <div class="col-md-12">
+                        <h4>Time control: <b id="slider-title"></b></h4>
+                        <div id="slider"></div>
+                        <br/>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Speed control (real time x<b id="speed-value"></b>)</h4>
+                        <div id="speed"></div>
+                        <br/>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Refresh time (every <b id="timer-delay-value"></b> milliseconds)</h4>
+                        <div id="timer-delay"></div>
+                        <br/>
+                    </div>
                 </div>
             </div>
         </section>
         
+        <!-- Active trains during day -->
         <section class="white">
             <div class="container">
                 <div class="row">

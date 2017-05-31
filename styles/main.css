@@ -26,22 +26,28 @@ section.grey {
 }
 
 .section { 
-    stroke: steelblue;/*#a15256;*/
-    stroke-width: 2.75;
+    stroke: DimGray;/*#a15256;*/
+    stroke-width: 2;
     fill: none;
-    opacity: .9;
+    opacity: .8;
 
 }
 
 .station { 
     opacity: .6;
     fill: gray;
+    r:4
+
 }
 
-/* for trains*/
-circle.train {
-    r: 4;
+/* for trains
+circle.train.scheduled {
+    opacity: 0.0
 }
+circle.train.observed {
+    opacity: 0.9
+}
+*/
 
 .tooltip {	
     position: absolute;			
