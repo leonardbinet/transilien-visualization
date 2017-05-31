@@ -36,8 +36,6 @@ section.grey {
 .station { 
     opacity: .6;
     fill: gray;
-    r:4
-
 }
 
 .tooltip {	

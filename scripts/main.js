@@ -150,6 +150,7 @@
             .append("circle")
             .attr("cx", function(d){return d.lon})
             .attr("cy", function(d){return d.lat})
+            .attr("r", 4)
             .classed("station", true)
             .on('mouseover', hoverStation)
             .on('mouseout', unHoverAny)    
