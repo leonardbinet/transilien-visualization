@@ -51,3 +51,7 @@ section.grey {
     border-radius: 8px;			
     pointer-events: none;			
 }
+
+td {
+    font-size: 12px;
+}
