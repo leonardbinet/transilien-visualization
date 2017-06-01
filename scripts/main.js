@@ -163,27 +163,14 @@
         // Table of active trains
         global.activeDatatableFormat = global.active.map(function(train){
             // Subsection name
-            var cfrom = global.stopIdToStop(train.atTime[type].from.stop_id)
-            if (cfrom){cfrom = cfrom.name; }
-            else {cfrom = train.atTime[type].from.stop_id;}
-            var cto = global.stopIdToStop(train.atTime[type].to.stop_id)
-            if (cto){cto = cto.name; }
-            else {cto = train.atTime[type].to.stop_id;}
+            var cfrom = global.stopIdToStop(train.atTime[type].from.stop_id, true, true);
+            var cto = global.stopIdToStop(train.atTime[type].to.stop_id, true, true);
             var subsection = cfrom+" -> "+cto;
             
             // From
-            var from = global.stopIdToStop(train.stops[0].stop_id);
-            if (from){from = from.name; }
-            else {from = train.atTime[type].from.stop_id;}
-            
+            var from = global.stopIdToStop(train.stops[0].stop_id, true, true);
             // To
-            var from = global.stopIdToStop(train.stops[0].stop_id);
-            if (from){from = from.name; }
-            else {from = train.stops[0].stop_id;}
-            
-            var to = global.stopIdToStop(train.stops[train.stops.length-1].stop_id);
-            if (to){to = to.name; }
-            else {to = train.stops[train.stops.length-1].stop_id;}
+            var to = global.stopIdToStop(train.stops[train.stops.length-1].stop_id, true, true);
             
             var estimatedDelay = Math.floor(train.atTime[type].estimatedDelay);
             if ("undefined" === typeof estimatedDelay) {estimatedDelay="nan"}
@@ -921,8 +908,9 @@
         });
     }
     
-    global.stopIdToStop = function(stopId, ifNan){
+    global.stopIdToStop = function(stopId, name, ifNan){
         var stop = global.stations.find(function(stop){return stop.stop_id === stopId;});
+        if (stop && name){stop = stop.name;}
         if (ifNan && !stop){return stopId;}
         return stop;
     };
@@ -944,7 +932,7 @@
         
         //// PARAMETERS
         // Canvas parameters
-        var w = 500, h = 500, border=20;
+        var w = 550, h = 550, border=20;
         // Chosen line
         global.line="H";
         // Size of trains: to compute distance from path
@@ -964,7 +952,8 @@
         global.svg = d3.select("#map")
             .append("svg")
             .attr("width", w)
-            .attr("height", h);
+            .attr("height", h)
+            .classed("center-block", true);
         
         // init cache results
         global.cache = {};
