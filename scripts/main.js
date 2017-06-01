@@ -794,8 +794,10 @@
     function setButtonInitialState(){
         // Timer button
         $("#button").on("click", function(){
-            global.timerActivated = !global.timerActivated; 
+            global.timerActivated = !global.timerActivated;
             sliderTimerUpdate();
+            if (global.timerActivated){$("#button").text("Stop");}
+            else { $("#button").text("Start"); }
         });
         // Scheduled button
         $("#scheduled").closest('label').on("click", function(){
