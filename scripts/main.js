@@ -10,7 +10,6 @@
     
     */
     
-    
     // DATA PARSING FUNCTIONS
     // parse stations data
     function parseStation(d,i) {
@@ -94,20 +93,6 @@
                     }),
                     secs: secs
             };
-            
-            /*
-            for (var j=0; j<result.stops.length; j++){
-                if (j===0){
-                    result.stops[0].estimatedDelay = result.stops[0].delay || 0;
-                    result.stops[0].estimatedTime = result.stops[0].scheduledTime + result.stops[0].estimatedDelay;
-                    continue;
-                }
-                // estimatedDelay is this stop delay, or if not exists estimatedDelay of previous stop
-                result.stops[j].estimatedDelay = result.stops[j].delay || result.stops[j-1].estimatedDelay;
-                result.stops[j].estimatedTime = result.stops[j].scheduledTime + result.stops[j].estimatedDelay;
-            }
-            */
-
             return result;
         }
     }
@@ -125,23 +110,47 @@
     // DRAWING FUNCTIONS
     function renderAllAtTime(unixSeconds, transitionDisabled){
         
-        /* Find all active trains:
-        - either active based on schedule
-        - either active based on observations
+        /* Find all active, notYet, and finished trains:
+        - either based on schedule
+        - either based on observations
         */
-        global.active = global.trips.filter(function (d) {
-          return isActiveScheduled(unixSeconds, d) || isActiveObserved(unixSeconds, d) ;
-        });
         
-        // TODO: correct with toggle: either based on schedule, either based on realtime
-        //global.finished = global.trips.filter(function (d) {
-        //  return d.end < unixSeconds;
-        //});
+        // two options: either scheduled, or observed
+        if (global.displayScheduled){
+            global.active = global.trips.filter(function (d) {
+                return isActiveScheduled(unixSeconds, d) ;
+            });
+            
+            global.finished = global.trips.filter(function (d) {
+                return (d.end < unixSeconds) ;
+            });   
+            
+            global.notYet = global.trips.filter(function (d) {
+                return (d.begin > unixSeconds) ;
+            });   
+        }
+        if (global.displayObserved){
+            global.active = global.trips.filter(function (d) {
+                return isActiveObserved(unixSeconds, d) ;
+            });
+            
+            global.finished = global.trips.filter(function (d) {
+                return (d.ObservedEnd < unixSeconds) ;
+            });   
+            
+            global.notYet = global.trips.filter(function (d) {
+                return (d.ObservedBegin > unixSeconds) ;
+            }); 
+        }
         
-        //global.notYet = global.trips.filter(function (d) {
-        //  return d.begin > unixSeconds;
-        //});
-        //console.log("Train positions at time "+unixSeconds+", meaning "+ moment(unixSeconds*1000).format() +". There are at this time "+ global.active.length +" trains running, "+ global.finished.length+" train arrived, and "+ global.notYet.length + " trains not departed yet.")    
+        // FIND TRAINS POSITIONS
+        global.positionedTrains = global.active
+            .map(getPositionOfTrain.bind(this, unixSeconds))
+            .filter(function(train){
+                if (!train){return; }
+                if (train.atTime.scheduled.pos && train.atTime.scheduled.acceptedEdge){return train; }
+                if (train.atTime.observed.pos && train.atTime.observed.acceptedEdge){return train; }
+            });
         
         infoPanel();
         
@@ -189,18 +198,11 @@
         var ttime = global.transitionTime;
         if (transitionDisabled){ttime=0;}
 
-        // FIND TRAINS POSITIONS
-        var positionedTrains = global.active
-            .map(getPositionOfTrain.bind(this, unixSeconds))
-            .filter(function(train){
-                if (!train){return; }
-                if (isActiveScheduled.bind(this, unixSeconds)(train)&&(train.atTime.scheduled.pos && train.atTime.scheduled.acceptedEdge)){return train; }
-                if (isActiveObserved.bind(this, unixSeconds)(train)&&(train.atTime.observed.pos && train.atTime.observed.acceptedEdge)){return train; }
-            });
+        
         
         // DISPLAY TRAINS
         var trainsGroups = global.svg.selectAll('g.train-group')
-            .data(positionedTrains, function (d) { return d.trip; });
+            .data(global.positionedTrains, function (d) { return d.trip; });
         
         // Enters
         var enteringGroups = trainsGroups.enter().append('g')
@@ -208,8 +210,7 @@
         
         // schedule
         enteringGroups
-            .filter(function(d){
-                return isActiveScheduled.bind(this, unixSeconds)(d)&& (d.atTime.scheduled.pos && d.atTime.scheduled.acceptedEdge)})
+            .filter(function(d){return isActiveScheduled.bind(this, unixSeconds)(d)})
             .append('circle')
             .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
             .classed('active', function (d) { return d.trip === global.highlightedTrip; })
@@ -237,8 +238,7 @@
         
         // observed
         enteringGroups
-            .filter(function(d){
-                return isActiveObserved.bind(this, unixSeconds)(d)&& (d.atTime.observed.pos && d.atTime.observed.acceptedEdge)})
+            .filter(function(d){return isActiveObserved.bind(this, unixSeconds)(d)})
             .append('circle')
             .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
             .classed('active', function (d) { return d.trip === global.highlightedTrip; })
@@ -267,8 +267,7 @@
 
         // Update schedule
         trainsGroups.select(".train.scheduled")
-            .filter(function(d){
-                return isActiveScheduled.bind(this, unixSeconds)(d)&& (d.atTime.scheduled.pos && d.atTime.scheduled.acceptedEdge)})
+            .filter(function(d){return isActiveScheduled.bind(this, unixSeconds)(d)})
             .transition()
             .duration(ttime)
             .attr('cx', function (d) { return d.atTime.scheduled.pos[0]; })
@@ -279,8 +278,7 @@
 
         // Update observed
         trainsGroups.select(".train.observed")
-            .filter(function(d){
-                return isActiveObserved.bind(this, unixSeconds)(d)&& (d.atTime.observed.pos && d.atTime.observed.acceptedEdge)})
+            .filter(function(d){return isActiveObserved.bind(this, unixSeconds)(d)})
             .transition()
             .duration(ttime)
             .attr('cx', function (d) { return d.atTime.observed.pos[0]; })
@@ -701,10 +699,10 @@
     }
     
     function infoPanel(){
-        //$( "#nbNotYetTrains" ).text(global.notYet.length);
+        $( "#nbNotYetTrains" ).text(global.notYet.length);
         $( "#nbActiveTrains" ).text(global.active.length);
-        //$( "#nbFinishedTrains" ).text(global.finished.length);
-        $( "#nbDisplayError" ).text(global.activeTripsWithoutPosAtTime().length);
+        $( "#nbFinishedTrains" ).text(global.finished.length);
+        $( "#nbDisplayError" ).text(global.active.length - global.positionedTrains.length);
     }
     
     // COLOR
@@ -878,9 +876,7 @@
         // to know which trains haven't been displayed because of errors
         return global.active
             .filter(function(trip){
-                var train = getPositionOfTrain.bind(this, global.renderingTimeStamp)(trip);
-                if (!train){return;}
-                if (!train.atTime.scheduled.pos){return true};
+                if (!global.positionedTrains.includes(trip)){return true;}
         });
     }
     
