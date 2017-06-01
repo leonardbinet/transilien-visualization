@@ -118,5 +118,83 @@
     global.Graph.prototype.isEdge = function(source, target) {
         return (_.contains(this.neighbors[source],target));
     };
+    
+    // My custom sections
+    global.SectionManager = function(){
+        this.sections = global.sections;
+    };
+    
+    global.SectionManager.prototype.refreshAtTime = function(unixSeconds){
+        var self = this;
+        // First flush previous dir0/1 arrays, and set renderedAtTime
+        this.sections.forEach(function(section){section.subsections.forEach(function(subsection){
+            subsection.atTime = {
+                    renderedAtTime: unixSeconds,
+                    observed: {
+                        dir0: [],
+                        dir1: []
+                    },
+                    scheduled: {
+                        dir0: [],
+                        dir1: []
+                    }
+                }
+        })})
+        // Then add currently active trains
+        
+        // SCHEDULED
+        global.trips
+            .filter(function (d) {return global.isActiveScheduled(unixSeconds, d) ;})
+            .forEach(function(train){
+            var fromId = train.atTime.scheduled.from.stop_id;
+            var toId = train.atTime.scheduled.to.stop_id;
+            self.addTrainToSubsection(fromId, toId, train, "scheduled");
+        });
+        // SCHEDULED POSTPROCESSING
+        
+        // OBSERVED
+        global.trips
+            .filter(function (d) {return global.isActiveObserved(unixSeconds, d) ;})
+            .forEach(function(train){
+            var fromId = train.atTime.observed.from.stop_id;
+            var toId = train.atTime.observed.to.stop_id;
+            self.addTrainToSubsection(fromId, toId, train, "observed");
+        });
+        // OBSERVED POSTPROCESSING
+    };
+    
+    global.SectionManager.prototype.addTrainToSubsection = function(fromId, toId, train, type){
+        // type is either observed or scheduled
+        var answered = this.sections.filter(function(section){
+            var dir0SubSection = section.subsections.find(
+                function(subsection){
+                    return ((fromId === subsection.from)&&(toId === subsection.to));
+            });
+            
+            var dir1SubSection = section.subsections.find(
+                function(subsection){
+                    return ((toId === subsection.from)&&(fromId === subsection.to));
+            });
+            if (dir0SubSection && dir1SubSection){
+                console.log("Error trying to assign train to subsection: for given section, two matching subsections");
+                return false;
+            }
+            if (!dir0SubSection && !dir1SubSection){return false;}
+            
+            if (dir0SubSection){dir0SubSection.atTime[type].dir0.push(train);}
+            if (dir1SubSection){dir1SubSection.atTime[type].dir1.push(train);}
+            return true;
+        });
+        /*
+        if (answered.length!==1){
+            console.log("Error for train from "+fromId+" to "+toId+", there are "+answered.length+" matching sections.");
+            console.log(answered);
+            console.log(global.stopIdToStop(fromId));
+            console.log(global.stopIdToStop(toId));
+            return;
+        }
+        console.log("Good")
+        */
+    }
 }(window.H))
 

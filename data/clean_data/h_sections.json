@@ -61,17 +61,6 @@
         ],
         "name": "EPINAY VILLETANEUSE - ERMONT EAUBONNE"
     },
-    {
-        "points":[
-            {"StopPoint:DUA8727605": "ERMONT EAUBONNE"},
-            {"StopPoint:DUA8727606": "CERNAY"},
-            {"StopPoint:DUA8727607": "FRANCONVILLE LE PLESSIS BOUCHARD"},
-            {"StopPoint:DUA8727608": "MONTIGNY BEAUCHAMP"},
-            {"StopPoint:DUA8727609": "PIERRELAYE"},
-            {"StopPoint:DUA8733798": "SAINT-OUEN L'AUMONE LIESSE"}
-        ],
-        "name": "ERMONT EAUBONNE - SAINT-OUEN L'AUMONE LIESSE"
-    },
     {   
         "points":[
             {"StopPoint:DUA8727610": "SAINT-OUEN L'AUMONE"},
@@ -110,16 +99,6 @@
             {"StopPoint:DUA8733798": "SAINT-OUEN L'AUMONE LIESSE"}
         ],
         "name": "ERMONT EAUBONNE - SAINT-OUEN L'AUMONE LIESSE"
-    },
-    {
-        "points":[
-            {"StopPoint:DUA8727614": "EPLUCHES"},
-            {"StopPoint:DUA8727615": "PONT PETIT"},
-            {"StopPoint:DUA8727616": "CHAPONVAL"},
-            {"StopPoint:DUA8727654": "AUVERS SUR OISE"},
-            {"StopPoint:DUA8727653": "VALMONDOIS"}
-        ],
-        "name": "EPLUCHES - VALMONDOIS"
     },
     {
         "points":[

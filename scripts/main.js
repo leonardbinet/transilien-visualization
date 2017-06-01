@@ -5,15 +5,9 @@
     Draw canvas: OK
     Load sections paths and draw paths: OK
     Load and draw stations circles: OK
-    Load day trips: preprocessing on python module
-    For given t: 
-    - filter currently active trains : OK
-    - find two-stations section (between 2 stations, one passed, the other not): TODO
-    - find trip global route (which sections it uses): TODO
-    - find trip local route (on which section it is now): TODO
-    - find trip global completion ratio: OK
-    - find trip local completion ratio: more important: TODO
-    - find current location on section path: PARTIAL
+    Load day trips: preprocessing on python module: OK
+    Load
+    
     */
     
     
@@ -38,31 +32,36 @@
         // we don't keep names, they are useful for conception/debugging only
         var points= d.points.map(function(o){return Object.keys(o)[0]});
         var endPoints = [points[0],points[points.length - 1]];
-        var edges = [];
+        var subsections = [];
         for (var p=0; p<points.length-1;p++){
-            var edge = {
+            var subsection = {
                 from: points[p],
                 to: points[p+1],
-                distance: stationsDistance(points[p],points[p+1])
-                /*
-                atTime:{
-                    time:null,
-                    nbDir0:0,
-                    nbDir1:0
+                distance: stationsDistance(points[p],points[p+1]),
+                atTime: {
+                    renderedAtTime: null,
+                    observed: {
+                        dir0: [],
+                        dir1: []
+                    },
+                    scheduled: {
+                        dir0: [],
+                        dir1: []
+                    }
                 }
-                */
             };
-            edges.push(edge);
+            subsections.push(subsection);
         }
         var ro = {
             name: d.name,
             endPoints: endPoints,
             points: points,
-            edges: edges,
+            subsections: subsections,
             nbStations: points.length,
             pointsCoord: points.map(stationIdToCoords)
         };
         return ro;
+            
     }
     // parse trips data
     function parseTrip(d,i) {
@@ -133,19 +132,22 @@
         global.active = global.trips.filter(function (d) {
           return isActiveScheduled(unixSeconds, d) || isActiveObserved(unixSeconds, d) ;
         });
-                
-        global.finished = global.trips.filter(function (d) {
-          return d.end < unixSeconds;
-        });
         
-        global.notYet = global.trips.filter(function (d) {
-          return d.begin > unixSeconds;
-        });
+        // TODO: correct with toggle: either based on schedule, either based on realtime
+        //global.finished = global.trips.filter(function (d) {
+        //  return d.end < unixSeconds;
+        //});
+        
+        //global.notYet = global.trips.filter(function (d) {
+        //  return d.begin > unixSeconds;
+        //});
         //console.log("Train positions at time "+unixSeconds+", meaning "+ moment(unixSeconds*1000).format() +". There are at this time "+ global.active.length +" trains running, "+ global.finished.length+" train arrived, and "+ global.notYet.length + " trains not departed yet.")    
         
         infoPanel();
         
         drawTrainsAtTime(unixSeconds, transitionDisabled);
+        
+        global.sectionMan.refreshAtTime(unixSeconds);
     }
     
     function drawStations(stations) {
@@ -297,7 +299,7 @@
             .attr('cx', function (d) {return stationIdToCoords(d.stops[d.stops.length-1].stop_id).lon; })
             .attr('cy', function (d) {return stationIdToCoords(d.stops[d.stops.length-1].stop_id).lat; })
             .attr("fill","purple")            
-            .attr("r", 2)
+            .attr("r", 3)
             .remove();
 
         trainsGroups.exit()
@@ -336,7 +338,7 @@
             var endNode = section.endPoints[1];
             global.mainGraph.addEdge(beginNode, endNode);
         });
-        console.log("Main graph created.")
+        console.log("Main graph created.");
         
         // create graph of all stations (small nodes) and subsections
         global.preciseGraph = new global.Graph();
@@ -348,7 +350,11 @@
             }
         }
         );
-        console.log("Precise graph created.")
+        console.log("Precise graph created.");
+        
+        // Create sections manager
+        global.sectionMan = new global.SectionManager();
+
     }
       
     function preprocessTrainPathWithTime(train){
@@ -510,6 +516,8 @@
     function getPositionOfTrain(unixSeconds, train){
         /*
         Find positions based on schedule and based on observations.
+        
+        TODO: take into account if real stops or not.
         */
         
         // SCHEDULED
@@ -597,7 +605,7 @@
         };
         return train;
     }
-     
+        
     function placeWithOffset(from, to, ratio) {
         
         // extrapolate position from trip ratio, previous station, and next station
@@ -693,9 +701,9 @@
     }
     
     function infoPanel(){
-        $( "#nbNotYetTrains" ).text(global.notYet.length);
+        //$( "#nbNotYetTrains" ).text(global.notYet.length);
         $( "#nbActiveTrains" ).text(global.active.length);
-        $( "#nbFinishedTrains" ).text(global.finished.length);
+        //$( "#nbFinishedTrains" ).text(global.finished.length);
         $( "#nbDisplayError" ).text(global.activeTripsWithoutPosAtTime().length);
     }
     
@@ -783,13 +791,13 @@
         });
     }
     
-    function renderSmoothnessSlider() {
+    function renderTimerDelaySlider() {
         $( "#timer-delay" ).slider({
             orientation:"horizontal",
             animate: "slow",
             value: global.timerDelay,
-            min: 20,
-            max: 400,
+            min: 15,
+            max: 150,
             slide: function( event, ui ) {
             $( "#timer-delay-value" ).text(ui.value);
             global.timerDelay = ui.value;
@@ -826,7 +834,7 @@
                 if (!train){return; }
             });
 
-            var meanDelay = _.reduce(active.map(function(trip){return trip.atTime.observed.previousEstimatedDelay;}), function(memo, num){ return memo + num; }, 0)/active.length;
+            var meanDelay = _.reduce(active.map(function(trip){return trip.atTime.observed.estimatedDelay;}), function(memo, num){ return memo + num; }, 0)/active.length;
             
             global.activeTrainsData.push({
                 date: unixSeconds*1000,
@@ -875,6 +883,10 @@
                 if (!train.atTime.scheduled.pos){return true};
         });
     }
+    
+    global.stopIdToStop = function(stopId){
+        return global.stations.find(function(stop){return stop.stop_id === stopId;})
+    };
     
     // MATH FUNCTION
     
@@ -930,6 +942,13 @@
         global.displayScheduled = 0;
         global.displayObserved = 1;
         
+        // Functions init
+        global.isActiveObserved = isActiveObserved;
+        global.isActiveScheduled = isActiveScheduled;
+        // For debug
+        global.stationIdToCoords = stationIdToCoords;
+        global.delayMapColorScale = delayMapColorScale;
+        
         //// DATA IMPORT, PARSING, SCALING OF STATIONS
         // Stations are imported before because their coordinates are used for scaling, and then used to compute
         // sections coordinates.
@@ -961,10 +980,10 @@
     
         
         //// DRAWING STATIONS AND SECTIONS
-        // Stations
-        drawStations(global.stations);
         // Sections
         drawSections(global.sections);
+        // Stations
+        drawStations(global.stations);
         // Tooltip hover over Map of trains and stations
         toolTipInit();
         
@@ -977,8 +996,8 @@
         renderTimeSlider(global.minUnixSeconds, global.maxUnixSeconds);
         // Speed slider
         renderSpeedSlider();
-        // Smoothness slider
-        renderSmoothnessSlider();
+        // TimerDelay slider
+        renderTimerDelaySlider();
 
         // DRAWING TRAINS INFO PANEL AT INITIAL TIME
         //console.log("Display at timestamp "+ global.minUnixSeconds)
@@ -990,10 +1009,7 @@
         computeActiveTrainsPerTime();
         // Generates chart
         global.generateActiveTrainsChart();
-        
-        // To remove later:
-        global.stationIdToCoords = stationIdToCoords;
-        global.delayMapColorScale = delayMapColorScale;
+
     
     });
     }(window.H));
