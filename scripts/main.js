@@ -1,13 +1,7 @@
 (function (global) {
     "use strict";
     /*
-    STEPS:
-    Draw canvas: OK
-    Load sections paths and draw paths: OK
-    Load and draw stations circles: OK
-    Load day trips: preprocessing on python module: OK
-    Load
-    
+    TODO: detail main steps
     */
     
     // DATA PARSING FUNCTIONS
@@ -115,6 +109,8 @@
         - either based on observations
         */
         
+        var type;
+        
         // two options: either scheduled, or observed
         if (global.displayScheduled){
             global.active = global.trips.filter(function (d) {
@@ -127,7 +123,10 @@
             
             global.notYet = global.trips.filter(function (d) {
                 return (d.begin > unixSeconds) ;
-            });   
+            });
+            
+            type = "scheduled"; 
+            
         }
         if (global.displayObserved){
             global.active = global.trips.filter(function (d) {
@@ -141,6 +140,9 @@
             global.notYet = global.trips.filter(function (d) {
                 return (d.ObservedBegin > unixSeconds) ;
             }); 
+            
+            type = "observed"; 
+
         }
         
         // FIND TRAINS POSITIONS
@@ -157,6 +159,45 @@
         drawTrainsAtTime(unixSeconds, transitionDisabled);
         
         global.sectionMan.refreshAtTime(unixSeconds);
+        
+        // Table of active trains
+        global.activeDatatableFormat = global.active.map(function(train){
+            // Subsection name
+            var cfrom = global.stopIdToStop(train.atTime[type].from.stop_id)
+            if (cfrom){cfrom = cfrom.name; }
+            else {cfrom = train.atTime[type].from.stop_id;}
+            var cto = global.stopIdToStop(train.atTime[type].to.stop_id)
+            if (cto){cto = cto.name; }
+            else {cto = train.atTime[type].to.stop_id;}
+            var subsection = cfrom+" -> "+cto;
+            
+            // From
+            var from = global.stopIdToStop(train.stops[0].stop_id);
+            if (from){from = from.name; }
+            else {from = train.atTime[type].from.stop_id;}
+            
+            // To
+            var from = global.stopIdToStop(train.stops[0].stop_id);
+            if (from){from = from.name; }
+            else {from = train.stops[0].stop_id;}
+            
+            var to = global.stopIdToStop(train.stops[train.stops.length-1].stop_id);
+            if (to){to = to.name; }
+            else {to = train.stops[train.stops.length-1].stop_id;}
+            
+            var estimatedDelay = Math.floor(train.atTime[type].estimatedDelay);
+            if ("undefined" === typeof estimatedDelay) {estimatedDelay="nan"}
+            
+            return {
+                trip: train.trip,
+                estimatedDelay: estimatedDelay,
+                from: from,
+                to: to,
+                subsection: subsection
+            };
+            
+        })
+        global.updateTableData(global.activeDatatableFormat);
     }
     
     function drawStations(stations) {
@@ -197,8 +238,6 @@
         global.lastTime = unixSeconds;
         var ttime = global.transitionTime;
         if (transitionDisabled){ttime=0;}
-
-        
         
         // DISPLAY TRAINS
         var trainsGroups = global.svg.selectAll('g.train-group')
@@ -253,12 +292,12 @@
             .attr("opacity", global.displayObserved)
             .attr("fill","lightgreen")
             .attr('cx', function (d) {
-                var p = stationIdToCoords(d.stops[0].stop_id);
+                var p = stationIdToCoords(d.stops[0].stop_id, true);
                 if (p){return p.lon;}
                 else {return d.atTime.observed.pos[0];}
             })
             .attr('cy', function (d) { 
-                var p = stationIdToCoords(d.stops[0].stop_id);
+                var p = stationIdToCoords(d.stops[0].stop_id, true);
                 if (p){return p.lat;}
                 else {return d.atTime.observed.pos[1];}
             })
@@ -476,7 +515,7 @@
 
     }
     
-    function stationIdToCoords(id){
+    function stationIdToCoords(id, debug){
         // convert station_id to longitude and latitude
         var stat = _.find(
             global.stations, 
@@ -498,7 +537,7 @@
             // console.log(stat)
             return {lon: stat.lon, lat: stat.lat}
         }
-        // console.log("Could not find stations, even with close try: id "+id);
+        if (debug) {console.log("Could not find stations, even with close try: id "+id)};
         return; //{lon: 0, lat: 0};
     }
     
@@ -880,8 +919,10 @@
         });
     }
     
-    global.stopIdToStop = function(stopId){
-        return global.stations.find(function(stop){return stop.stop_id === stopId;})
+    global.stopIdToStop = function(stopId, ifNan){
+        var stop = global.stations.find(function(stop){return stop.stop_id === stopId;});
+        if (ifNan && !stop){return stopId;}
+        return stop;
     };
     
     // MATH FUNCTION
@@ -945,6 +986,9 @@
         global.stationIdToCoords = stationIdToCoords;
         global.delayMapColorScale = delayMapColorScale;
         
+        // Generates initial table
+        global.initDatatable();
+        
         //// DATA IMPORT, PARSING, SCALING OF STATIONS
         // Stations are imported before because their coordinates are used for scaling, and then used to compute
         // sections coordinates.
@@ -1005,6 +1049,7 @@
         computeActiveTrainsPerTime();
         // Generates chart
         global.generateActiveTrainsChart();
+
 
     
     });

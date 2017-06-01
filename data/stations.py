@@ -24,5 +24,16 @@ ms = stations.join(stops, on="UIC7", how="left", rsuffix="_")
 # LINE SELECTION
 # ms.loc[ms.H.notnull(), :]
 
+# Missing station to add (maybe not because it is far away)
+missing = {
+    "Code_UIC": "8731351X",
+    "stop_name": "BEAUVAIS",
+    "UIC7": "8731351",
+    "stop_id": "StopPoint:DUA8731351",
+    "stop_lat": 49.42619548,
+    "stop_lon": 2.08848802
+}
+
+
 # EXPORT
 # ms.to_json(path.join(clean_folder, "stations.json"), orient="records")

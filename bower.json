@@ -12,6 +12,8 @@
     "jquery-ui":"~1.12.1",
     "bootstrap": "~3.3.7",
     "tether": "~1.4.0",
-    "c3":"~0.4.11"
+    "c3":"~0.4.11",
+    "datatables.net": "~1.10.15",
+    "datatables.net-dt": "~1.10.15"
   }
 }
