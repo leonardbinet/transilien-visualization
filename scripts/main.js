@@ -84,6 +84,11 @@
                         stop.scheduledTime = +stop.time;
                         if (stop.delay){
                             stop.delay = +stop.delay;
+                            // if error of one day
+                            stop.delay = stop.delay % 86400;
+                            if (stop.delay>5000){
+                                console.log("Info: delay>5000 secs observed: "+stop.delay);
+                            }
                         }
                         stop.realStop = true;
                         return stop;
@@ -91,7 +96,7 @@
                     secs: secs
             };
             
-            
+            /*
             for (var j=0; j<result.stops.length; j++){
                 if (j===0){
                     result.stops[0].estimatedDelay = result.stops[0].delay || 0;
@@ -102,6 +107,7 @@
                 result.stops[j].estimatedDelay = result.stops[j].delay || result.stops[j-1].estimatedDelay;
                 result.stops[j].estimatedTime = result.stops[j].scheduledTime + result.stops[j].estimatedDelay;
             }
+            */
 
             return result;
         }
@@ -116,7 +122,6 @@
     function isActiveObserved(unixSeconds, train){
         return (train.ObservedBegin < unixSeconds && train.ObservedEnd > unixSeconds)
     }
-    
 
     // DRAWING FUNCTIONS
     function renderAllAtTime(unixSeconds, transitionDisabled){
@@ -278,7 +283,7 @@
             .duration(ttime)
             .attr('cx', function (d) { return d.atTime.observed.pos[0]; })
             .attr('cy', function (d) { return d.atTime.observed.pos[1]; })
-            .attr("fill", function(d) {return delayMapColorScale(d.atTime.observed.previousEstimatedDelay); })
+            .attr("fill", function(d) {return delayMapColorScale(d.atTime.observed.estimatedDelay); })
             .attr("r",4)
             .attr("opacity", global.displayObserved)
 
@@ -287,16 +292,17 @@
         trainsGroups.exit()
             .select(".train")
             .transition()
-            .duration(ttime/2)
+            .duration(ttime)
             // first finish till last station then disapear
             .attr('cx', function (d) {return stationIdToCoords(d.stops[d.stops.length-1].stop_id).lon; })
             .attr('cy', function (d) {return stationIdToCoords(d.stops[d.stops.length-1].stop_id).lat; })
             .attr("fill","purple")            
             .attr("r", 2)
+            .remove();
 
         trainsGroups.exit()
             .transition()
-            .delay(ttime/3)
+            .delay(ttime)
             .remove();
     }
     
@@ -444,6 +450,9 @@
         and real end.
         We might do all here (and delete it in parsing operation).
         
+        TODO: smoothen delay estimation based on next observed delay, so that if there are several subsections between 
+        observed delays then it doesn't change at the last subsection.
+        
         */ 
         for (var j=0; j<train.stops.length; j++){
             if (j===0){
@@ -547,7 +556,7 @@
         var efrom = train.stops[j];
         var eto = train.stops[j + 1];
         
-        var eacceptedEdge, eratio, epos, previousEstimatedDelay, nextEstimatedDelay;
+        var eacceptedEdge, eratio, epos, previousEstimatedDelay, nextEstimatedDelay, estimatedDelayEvolution, estimatedDelay;
         
         if (efrom && eto){
             // console.log("OBSERVED Could not find previous or next for trip "+train.trip);
@@ -564,6 +573,9 @@
             previousEstimatedDelay = efrom.estimatedDelay;
             nextEstimatedDelay = eto.estimatedDelay;
             
+            estimatedDelayEvolution = nextEstimatedDelay - nextEstimatedDelay;
+            estimatedDelay = eratio*nextEstimatedDelay + (1-eratio)*previousEstimatedDelay;
+            
         }
 
         var observed = {
@@ -573,7 +585,9 @@
             pos: epos,
             acceptedEdge: eacceptedEdge,
             previousEstimatedDelay: previousEstimatedDelay,
-            nextEstimatedDelay: nextEstimatedDelay
+            nextEstimatedDelay: nextEstimatedDelay,
+            estimatedDelayEvolution: estimatedDelayEvolution,
+            estimatedDelay: estimatedDelay
         };
         
         train.atTime = {
