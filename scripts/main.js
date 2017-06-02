@@ -111,8 +111,8 @@
     function datatableTrain(type, train){
         // type is either "observed" or "scheduled"
         // Subsection name
-        var cfrom = train.atTime[type].from.stop.name;
-        var cto = train.atTime[type].to.stop.name;
+        var cfrom = train.atTime[type].from.name;
+        var cto = train.atTime[type].to.name;
         var subsection = cfrom+" -> "+cto;
 
         // From
@@ -185,7 +185,7 @@
         
         // FIND TRAINS POSITIONS
         global.positionedTrains = global.active
-            .map(getPositionOfTrain.bind(this, unixSeconds))
+            .map(setTrainsPositions.bind(this, unixSeconds))
             .filter(function(train){
                 if (!train){return; }
                 if (train.atTime.scheduled.pos && train.atTime.scheduled.acceptedEdge){return train; }
@@ -199,7 +199,8 @@
         global.sectionMan.refreshAtTime(unixSeconds);
         
         // Table of active trains
-        global.activeDatatableFormat = global.active.map(datatableTrain.bind(this, type));
+        var customFunc = datatableTrain.bind(this, type);
+        global.activeDatatableFormat = global.active.map(customFunc);
         global.updateTableData(global.activeDatatableFormat);
     }
     
@@ -420,7 +421,7 @@
             var toStop = train.stops[i+1];
             
             // Find path between two consecutive stops
-            fromStop.nextPath=global.preciseGraph.shortestPath(fromStop.stop_id, toStop.stop_id)
+            fromStop.nextPath=global.preciseGraph.shortestPath(fromStop.stop.stop_id, toStop.stop.stop_id)
                 .map(global.stopIdToStop);
             
             // If no station passed without stop, or error trying to find: finished
@@ -435,10 +436,10 @@
             var totalDistance = 0;
             var distancesList = [];
             // add beginning and end
-            var iniDist = stationsDistance(fromStop, fromStop.nextPath[0]);
+            var iniDist = stationsDistance(fromStop.stop, fromStop.nextPath[0]);
             totalDistance += iniDist
             distancesList.push(iniDist);
-            var endDist = stationsDistance(toStop, fromStop.nextPath[fromStop.nextPath.length-1]);
+            var endDist = stationsDistance(toStop.stop, fromStop.nextPath[fromStop.nextPath.length-1]);
             totalDistance += endDist;
             // distancesList.push(endDist);
             for (var m=0; m<fromStop.nextPath.length-1;m++){
@@ -477,7 +478,7 @@
             
             for (var h=0; h<stop.nextPath.length; h++){
                 var g= {
-                    stop_id: stop.nextPath[h],
+                    stop: stop.nextPath[h],
                     scheduledTime: stop.timestampList[h],
                     realStop: false
                 };
@@ -522,7 +523,7 @@
         return distance;
 }
     
-    function getPositionOfTrain(unixSeconds, train){
+    function setTrainsPositions(unixSeconds, train){
         /*
         Find positions based on schedule and based on observations.
         TODO: take into account if real stops or not for timing.
@@ -535,20 +536,22 @@
         }
         var sfrom = train.stops[i];
         var sto = train.stops[i + 1];
-        var sacceptedEdge, sratio, spos;
+        var sacceptedEdge, sratio, spos, sfromStop, stoStop;
         
         if (sfrom && sto){
+            sfromStop = sfrom.stop;
+            stoStop=sto.stop;
             // Check if real edge of precise graph
-            sacceptedEdge = global.preciseGraph.isEdge(sfrom.stop.stop_id, sto.stop.stop_id);
+            sacceptedEdge = global.preciseGraph.isEdge(sfromStop.stop_id, stoStop.stop_id);
             // Find ratio
             sratio = (unixSeconds - sfrom.scheduledTime) / (sto.scheduledTime - sfrom.scheduledTime);
             // Compute position object given: from, to and ratio
-            spos = placeWithOffset(sfrom.stop, sto.stop, sratio);
+            spos = placeWithOffset(sfromStop, stoStop, sratio);
         }
         
         var scheduled = {
-            from: sfrom,
-            to: sto,
+            from: sfromStop,
+            to: stoStop,
             timeRatio: sratio,
             pos: spos,
             acceptedEdge: sacceptedEdge
@@ -579,8 +582,8 @@
         }
 
         var observed = {
-            from: efrom,
-            to: eto,
+            from: efrom.stop,
+            to: eto.stop,
             timeRatio: eratio,
             pos: epos,
             acceptedEdge: eacceptedEdge,
@@ -823,7 +826,7 @@
             
             var active = global.trips.filter(isActiveObserved.bind(this,unixSeconds));
             
-            active.map(getPositionOfTrain.bind(this, unixSeconds))
+            active.map(setTrainsPositions.bind(this, unixSeconds))
                 .filter(function(train){
                 if (!train){return; }
             });

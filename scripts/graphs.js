@@ -147,9 +147,9 @@
         global.positionedTrains
             .filter(function (d) {return global.isActiveScheduled(unixSeconds, d) ;})
             .forEach(function(train){
-            var fromId = train.atTime.scheduled.from.stop_id;
-            var toId = train.atTime.scheduled.to.stop_id;
-            self.addTrainToSubsection(fromId, toId, train, "scheduled");
+            var from = train.atTime.scheduled.from;
+            var to = train.atTime.scheduled.to;
+            self.addTrainToSubsection(from, to, train, "scheduled");
         });
         // SCHEDULED POSTPROCESSING
         
@@ -157,24 +157,24 @@
         global.positionedTrains
             .filter(function (d) {return global.isActiveObserved(unixSeconds, d) ;})
             .forEach(function(train){
-            var fromId = train.atTime.observed.from.stop_id;
-            var toId = train.atTime.observed.to.stop_id;
-            self.addTrainToSubsection(fromId, toId, train, "observed");
+            var from = train.atTime.observed.from;
+            var to = train.atTime.observed.to;
+            self.addTrainToSubsection(from, to, train, "observed");
         });
         // OBSERVED POSTPROCESSING
     };
     
-    global.SectionManager.prototype.addTrainToSubsection = function(fromId, toId, train, type){
+    global.SectionManager.prototype.addTrainToSubsection = function(from, to, train, type){
         // type is either observed or scheduled
         var answered = this.sections.filter(function(section){
             var dir0SubSection = section.subsections.find(
                 function(subsection){
-                    return ((fromId === subsection.from)&&(toId === subsection.to));
+                    return ((from === subsection.from)&&(to === subsection.to));
             });
             
             var dir1SubSection = section.subsections.find(
                 function(subsection){
-                    return ((toId === subsection.from)&&(fromId === subsection.to));
+                    return ((to === subsection.from)&&(from === subsection.to));
             });
             if (dir0SubSection && dir1SubSection){
                 console.log("Error trying to assign train to subsection: for given section, two matching subsections");
