@@ -75,7 +75,7 @@
         if (cachedPath){return cachedPath};
         
         if (source == target) {   // Delete these four lines if
-            return;                 // when the source is equal to
+            return [];                 // when the source is equal to
         }                         // the target.
         var queue = [ source ],
         visited = { source: true },
@@ -88,7 +88,7 @@
                 console.log("No neighbor for stop "+u);
                 if (!global.errors.stopNoNeighboor.find(function(d){return d===u;}))
                 global.errors.stopNoNeighboor.push(u);
-                return;
+                return [];
             }
             for (var i = 0; i < neighbors.length; ++i) {
                 var v = neighbors[i];
@@ -113,6 +113,7 @@
                 queue.push(v);
             }
         }
+        return [];
     };
     
     global.Graph.prototype.isEdge = function(source, target) {
@@ -143,7 +144,7 @@
         // Then add currently active trains
         
         // SCHEDULED
-        global.trips
+        global.positionedTrains
             .filter(function (d) {return global.isActiveScheduled(unixSeconds, d) ;})
             .forEach(function(train){
             var fromId = train.atTime.scheduled.from.stop_id;
@@ -153,7 +154,7 @@
         // SCHEDULED POSTPROCESSING
         
         // OBSERVED
-        global.trips
+        global.positionedTrains
             .filter(function (d) {return global.isActiveObserved(unixSeconds, d) ;})
             .forEach(function(train){
             var fromId = train.atTime.observed.from.stop_id;

@@ -5,7 +5,6 @@
     */
     
     // DATA PARSING FUNCTIONS
-    // parse stations data
     function parseStation(d,i) {
         // returns only for given line
         if (d[global.line]){
@@ -20,10 +19,12 @@
             }
         }
     }
-    // parse sections data
+
     function parseSection(d,i) {
-        // we don't keep names, they are useful for conception/debugging only
+        // Extract stop_ids (we don't keep names, they are useful for conception/debugging only)
         var points= d.points.map(function(o){return Object.keys(o)[0]});
+        // Replace by real stations objects
+        var points = points.map(global.stopIdToStop);
         var endPoints = [points[0],points[points.length - 1]];
         var subsections = [];
         for (var p=0; p<points.length-1;p++){
@@ -45,54 +46,92 @@
             };
             subsections.push(subsection);
         }
-        var ro = {
+        var section = {
             name: d.name,
             endPoints: endPoints,
             points: points,
             subsections: subsections,
             nbStations: points.length,
-            pointsCoord: points.map(stationIdToCoords)
+            // returns {lon:, lat:}
+            pointsCoord: points.map(function(station){
+                return {
+                    lon: station.lon,
+                    lat: station.lat
+                };
+            })
         };
-        return ro;
+        return section;
             
     }
-    // parse trips data
+
     function parseTrip(d,i) {
-         /*parsedTrips.forEach(function (d) {
-            d.stops = d.stops || [];
-            var m = moment(d.begin*1000).zone(5);
-            d.secs = m.diff(m.clone().startOf('day')) / 1000;
-        });
-        */
         // if >10000, it is an error of date parsing
         var secs = +d.end - +d.begin;
-        if (secs<10000){
-            var result = {
-                    begin: +d.begin,
-                    end: +d.end,
-                    line: d.line,
-                    trip: d.trip,
-                    stops: d.stops.map(function(stop){
-                        stop.scheduledTime = +stop.time;
-                        if (stop.delay){
-                            stop.delay = +stop.delay;
-                            // if error of one day
-                            stop.delay = stop.delay % 86400;
-                            if (stop.delay>5000){
-                                console.log("Info: delay>5000 secs observed: "+stop.delay);
-                            }
-                        }
-                        stop.realStop = true;
-                        return stop;
-                    }),
-                    secs: secs
-            };
-            return result;
+        if (secs>10000){return;}
+        
+        var stops = d.stops.map(function(stop){
+            var fullStop = {};
+            // checks if stop_id is among imported stations
+            var realStop = global.stopIdToStop(stop.stop_id);
+            if (!realStop){ 
+                // if not stop is ignored and trip is added to errors
+                global.errors.notFoundStops[stop.stop_id].push(d);
+                return; 
+            }
+            fullStop.stop = realStop;
+            fullStop.scheduledTime = +stop.time;
+            if (stop.delay){
+                fullStop.delay = +stop.delay;
+                // if error of one day
+                fullStop.delay = fullStop.delay % 86400;
+                if (fullStop.delay>5000){
+                    console.log("Info: delay>5000 secs observed: "+fullStop.delay);
+                }
+            }
+            fullStop.realStop = true;
+            return fullStop;
+        });
+        
+        stops = stops.filter(function(stop){return !!stop; })
+        if (stops.length<2){
+            console.log("Added "+d.trip+" to trips with errors (less than 2 stations identified).");
+            return;
         }
+        var result = {
+                begin: +d.begin,
+                end: +d.end,
+                line: d.line,
+                trip: d.trip,
+                stops: stops,
+                secs: secs
+        };
+        return result;
     }
     
+    function datatableTrain(type, train){
+        // type is either "observed" or "scheduled"
+        // Subsection name
+        var cfrom = train.atTime[type].from.stop.name;
+        var cto = train.atTime[type].to.stop.name;
+        var subsection = cfrom+" -> "+cto;
+
+        // From
+        var from = train.stops[0].stop.name;
+        // To
+        var to = train.stops[train.stops.length-1].stop.name;
+
+        var estimatedDelay = Math.floor(train.atTime[type].estimatedDelay);
+        if ("undefined" === typeof estimatedDelay) {estimatedDelay="nan"}
+
+        return {
+            trip: train.trip,
+            estimatedDelay: estimatedDelay,
+            from: from,
+            to: to,
+            subsection: subsection
+        };
+    }
     // TRAIN ACTIVE FUNCTIONS
-    
     function isActiveScheduled(unixSeconds, train){
         return (train.begin < unixSeconds && train.end > unixSeconds)
     }
@@ -109,9 +148,8 @@
         - either based on observations
         */
         
-        var type;
+        var type; // two options: either scheduled, or observed
         
-        // two options: either scheduled, or observed
         if (global.displayScheduled){
             global.active = global.trips.filter(function (d) {
                 return isActiveScheduled(unixSeconds, d) ;
@@ -161,29 +199,7 @@
         global.sectionMan.refreshAtTime(unixSeconds);
         
         // Table of active trains
-        global.activeDatatableFormat = global.active.map(function(train){
-            // Subsection name
-            var cfrom = global.stopIdToStop(train.atTime[type].from.stop_id, true, true);
-            var cto = global.stopIdToStop(train.atTime[type].to.stop_id, true, true);
-            var subsection = cfrom+" -> "+cto;
-            
-            // From
-            var from = global.stopIdToStop(train.stops[0].stop_id, true, true);
-            // To
-            var to = global.stopIdToStop(train.stops[train.stops.length-1].stop_id, true, true);
-            
-            var estimatedDelay = Math.floor(train.atTime[type].estimatedDelay);
-            if ("undefined" === typeof estimatedDelay) {estimatedDelay="nan"}
-            
-            return {
-                trip: train.trip,
-                estimatedDelay: estimatedDelay,
-                from: from,
-                to: to,
-                subsection: subsection
-            };
-            
-        })
+        global.activeDatatableFormat = global.active.map(datatableTrain.bind(this, type));
         global.updateTableData(global.activeDatatableFormat);
     }
     
@@ -215,6 +231,23 @@
             .classed("section", true)
             .on("click", function(d){console.log('Section '+d.name)})
             .each(function(d) { d.totalLength = this.getTotalLength(); });
+    }
+    
+    function drawSectionsJamAtTime(unixSeconds, transitionDisabled){
+        /*
+        1 - Draw subsections rectanges for each direction: rectangle
+        representing delays of near/passed trains at given station for a given direction
+        (information must be PER STATION PER DIRECTION, symetric for adjacent subsections on given direction)
+        2 - Draw subsections flow paths for each direction: curve
+        representing number/density of trains per subsection
+        3 - Render color of rectangle + curve: representing evolution of delays of trains passed by this station
+        */
+        
+        var data = global.stations.map(
+            function(station){
+            var dir0Data = stationWeightedLastDelays(station.stop_id, "dir0", 300);
+            var dir1Data = stationWeightedLastDelays(station.stop_id, "dir1", 300);
+            });
     }
     
     function drawTrainsAtTime(unixSeconds, transitionDisabled) {
@@ -250,16 +283,8 @@
             .attr("r", 2)
             .attr("opacity", global.displayScheduled)
             .attr("fill","lightgreen")
-            .attr('cx', function (d) {
-                var p = stationIdToCoords(d.stops[0].stop_id);
-                if (p){return p.lon;}
-                else {return d.atTime.scheduled.pos[0];}
-            })
-            .attr('cy', function (d) { 
-                var p = stationIdToCoords(d.stops[0].stop_id);
-                if (p){return p.lat;}
-                else {return d.atTime.scheduled.pos[1];}
-            })
+            .attr('cx', function (d) {return d.stops[0].lon;})
+            .attr('cy', function (d) {return d.stops[0].lat;})
         ;
         
         // observed
@@ -278,17 +303,8 @@
             .attr("r", 2)
             .attr("opacity", global.displayObserved)
             .attr("fill","lightgreen")
-            .attr('cx', function (d) {
-                var p = stationIdToCoords(d.stops[0].stop_id, true);
-                if (p){return p.lon;}
-                else {return d.atTime.observed.pos[0];}
-            })
-            .attr('cy', function (d) { 
-                var p = stationIdToCoords(d.stops[0].stop_id, true);
-                if (p){return p.lat;}
-                else {return d.atTime.observed.pos[1];}
-            })
-        ;
+            .attr('cx', function (d) {return d.stops[0].lon;})
+            .attr('cy', function (d) {return d.stops[0].lat;});
 
 
         // Update schedule
@@ -320,8 +336,8 @@
             .transition()
             .duration(ttime)
             // first finish till last station then disapear
-            .attr('cx', function (d) {return stationIdToCoords(d.stops[d.stops.length-1].stop_id).lon; })
-            .attr('cy', function (d) {return stationIdToCoords(d.stops[d.stops.length-1].stop_id).lat; })
+            .attr('cx', function (d) {return d.stops[d.stops.length-1].lon; })
+            .attr('cy', function (d) {return d.stops[d.stops.length-1].lat; })
             .attr("fill","purple")            
             .attr("r", 3)
             .remove();
@@ -345,17 +361,14 @@
         global.nodes = [];
         global.sections.forEach(function(section){
             // for each section
-            section.points.forEach(function(point){
-                // for each point in section
-                // find related station
-                var station = global.stations.find(function(station){return (station.stop_id===point);})
-                // check that section is registered as linked for this station, add if necessary
-                if (!station.linkedSections.includes(section.name)){station.linkedSections.push(section.name);}
+            section.points.forEach(function(station){
+                if (!station.linkedSections.includes(section)){station.linkedSections.push(section);}
             })
             ;
         });
         
         // create graph of with only main nodes and sections
+        /*
         global.mainGraph = new global.Graph();
         global.sections.forEach(function(section){
             var beginNode = section.endPoints[0];
@@ -363,13 +376,13 @@
             global.mainGraph.addEdge(beginNode, endNode);
         });
         console.log("Main graph created.");
-        
+        */
         // create graph of all stations (small nodes) and subsections
         global.preciseGraph = new global.Graph();
         global.sections.forEach(function(section){
             for (var l=0; l<section.points.length-1; l++){
-                var beginNode = section.points[l];
-                var endNode = section.points[l+1];
+                var beginNode = section.points[l].stop_id;
+                var endNode = section.points[l+1].stop_id;
                 global.preciseGraph.addEdge(beginNode, endNode);
             }
         }
@@ -407,7 +420,8 @@
             var toStop = train.stops[i+1];
             
             // Find path between two consecutive stops
-            fromStop.nextPath=global.preciseGraph.shortestPath(fromStop.stop_id, toStop.stop_id);
+            fromStop.nextPath=global.preciseGraph.shortestPath(fromStop.stop_id, toStop.stop_id)
+                .map(global.stopIdToStop);
             
             // If no station passed without stop, or error trying to find: finished
             if (!fromStop.nextPath){continue;}
@@ -421,10 +435,10 @@
             var totalDistance = 0;
             var distancesList = [];
             // add beginning and end
-            var iniDist = stationsDistance(fromStop.stop_id, fromStop.nextPath[0]);
+            var iniDist = stationsDistance(fromStop, fromStop.nextPath[0]);
             totalDistance += iniDist
             distancesList.push(iniDist);
-            var endDist = stationsDistance(toStop.stop_id, fromStop.nextPath[fromStop.nextPath.length-1]);
+            var endDist = stationsDistance(toStop, fromStop.nextPath[fromStop.nextPath.length-1]);
             totalDistance += endDist;
             // distancesList.push(endDist);
             for (var m=0; m<fromStop.nextPath.length-1;m++){
@@ -502,73 +516,35 @@
 
     }
     
-    function stationIdToCoords(id, debug){
-        // convert station_id to longitude and latitude
-        var stat = _.find(
-            global.stations, 
-            function(station){
-                return (station.stop_id === id);}
-        );
-        if (stat){
-            return {lon: stat.lon, lat: stat.lat};
-        }
-        // console.log("Cound not find station "+id)
-        // can be possible for some stations, like gare du nord, because of last digit change
-        var stat = _.find(
-            global.stations, 
-            function(station){
-                return station.stop_id.startsWith(id.slice(0,-1));}
-        );
-        if (stat){
-            //console.log("Found nearly the same: "+id+" vs "+stat.stop_id)
-            // console.log(stat)
-            return {lon: stat.lon, lat: stat.lat}
-        }
-        if (debug) {console.log("Could not find stations, even with close try: id "+id)};
-        return; //{lon: 0, lat: 0};
-    }
-    
-    function stationsDistance(fromId, toId){
+    function stationsDistance(from, to){
         // scaled because everything is scaled at the beginning
-        var fromCoords = stationIdToCoords(fromId);
-        var toCoords = stationIdToCoords(toId);
-        
-        var distance = Math.sqrt((fromCoords.lon - toCoords.lon)**2+(fromCoords.lat - toCoords.lat)**2)
+        var distance = Math.sqrt((from.lon - to.lon)**2+(from.lat - to.lat)**2)
         return distance;
 }
     
     function getPositionOfTrain(unixSeconds, train){
         /*
         Find positions based on schedule and based on observations.
-        
-        TODO: take into account if real stops or not.
+        TODO: take into account if real stops or not for timing.
         */
         
         // SCHEDULED
         // Find which is last passed station
         for (var i = 0; i < train.stops.length - 1; i++) {
-            if (train.stops[i + 1].scheduledTime > unixSeconds) {
-            break;
-            }
+            if (train.stops[i + 1].scheduledTime > unixSeconds) {break;}
         }
         var sfrom = train.stops[i];
         var sto = train.stops[i + 1];
-        
         var sacceptedEdge, sratio, spos;
         
         if (sfrom && sto){
-            // console.log("SCHEDULE: Could not find previous or next for trip "+train.trip);
             // Check if real edge of precise graph
-            sacceptedEdge = global.preciseGraph.isEdge(sfrom.stop_id, sto.stop_id);
-            //console.log("Train "+ train.trip+" is not real edge between "+from.stop_id+" and "+ to.stop_id+ "."); 
-
+            sacceptedEdge = global.preciseGraph.isEdge(sfrom.stop.stop_id, sto.stop.stop_id);
             // Find ratio
             sratio = (unixSeconds - sfrom.scheduledTime) / (sto.scheduledTime - sfrom.scheduledTime);
-
-            // compute atTime object given: from, to and ratio
-            spos = placeWithOffset(sfrom, sto, sratio);
+            // Compute position object given: from, to and ratio
+            spos = placeWithOffset(sfrom.stop, sto.stop, sratio);
         }
-        
         
         var scheduled = {
             from: sfrom,
@@ -580,34 +556,26 @@
         
         // OBSERVED (with extrapolation when no data is found)
         for (var j = 0; j < train.stops.length - 1; j++) {
-            if (train.stops[j + 1].estimatedTime > unixSeconds) {
-            break;
-            }
+            if (train.stops[j + 1].estimatedTime > unixSeconds) {break;}
         }
         
         var efrom = train.stops[j];
         var eto = train.stops[j + 1];
-        
         var eacceptedEdge, eratio, epos, previousEstimatedDelay, nextEstimatedDelay, estimatedDelayEvolution, estimatedDelay;
         
         if (efrom && eto){
-            // console.log("OBSERVED Could not find previous or next for trip "+train.trip);
             // Check if real edge of precise graph
-            eacceptedEdge = global.preciseGraph.isEdge(efrom.stop_id, eto.stop_id);
-            //console.log("Train "+ train.trip+" is not real edge between "+from.stop_id+" and "+ to.stop_id+ "."); 
-    
+            eacceptedEdge = global.preciseGraph.isEdge(efrom.stop.stop_id, eto.stop.stop_id);    
             // Find ratio
             eratio = (unixSeconds - efrom.estimatedTime) / (eto.estimatedTime - efrom.estimatedTime);
-        
-            // compute atTime object given: from, to and ratio
-            epos = placeWithOffset(efrom, eto, eratio);
+            // compute position object given: from, to and ratio
+            epos = placeWithOffset(efrom.stop, eto.stop, eratio);
             
             previousEstimatedDelay = efrom.estimatedDelay;
             nextEstimatedDelay = eto.estimatedDelay;
             
             estimatedDelayEvolution = nextEstimatedDelay - nextEstimatedDelay;
             estimatedDelay = eratio*nextEstimatedDelay + (1-eratio)*previousEstimatedDelay;
-            
         }
 
         var observed = {
@@ -633,20 +601,20 @@
     function placeWithOffset(from, to, ratio) {
         
         // extrapolate position from trip ratio, previous station, and next station
-        var fromPos = stationIdToCoords(from.stop_id);
-        var toPos = stationIdToCoords(to.stop_id);
-        if (!fromPos || !toPos){
-            //console.log("Error for localization: from: "+from+", to: "+to+", ratio: "+ratio+". Could not find stations coordinates for From or To station. From: "+fromPos+". To: "+toPos+".")
-            return;
-        }
+        var fromPos = {lon: from.lon, lat: from.lat};
+        var toPos = {lon: to.lon, lat: to.lat};
         
         var midpoint = d3.interpolate([fromPos.lon, fromPos.lat], [toPos.lon,toPos.lat])(ratio);
         var angle = Math.atan2(toPos.lat - fromPos.lat, toPos.lon - fromPos.lon) + Math.PI / 2;
         return [midpoint[0] + Math.cos(angle) * global.mapGlyphTrainCircleRadius, midpoint[1] + Math.sin(angle) * global.mapGlyphTrainCircleRadius ];
     }
     
-    // SCALING FUNCTION
+    // STATIONS OBSERVED DELAYS 
+    function stationWeightedLastDelays(stopId, direction, lastNSeconds){
+        return;
+    }
     
+    // SCALING FUNCTION
     function setScale(stations, h, w, border){
         // Set scales for GPS coordinates placed on SVG object
         var x = d3.scale.linear()
@@ -908,10 +876,16 @@
         });
     }
     
-    global.stopIdToStop = function(stopId, name, ifNan){
+    global.stopIdToStop = function(stopId){
+        // Only used for parsing/preprocessing or debugging.
         var stop = global.stations.find(function(stop){return stop.stop_id === stopId;});
-        if (stop && name){stop = stop.name;}
-        if (ifNan && !stop){return stopId;}
+        if (!stop){    
+            // adds stop_id to errors stops, and associate it with trip_id
+            if (global.errors.notFoundStops[stopId] === undefined) {
+                global.errors.notFoundStops[stopId] = [];
+                console.log("Added "+stopId+" to stop_ids without found station.")
+            }
+        }
         return stop;
     };
     
@@ -959,6 +933,7 @@
         global.cache = {};
         global.cache.stationsDistances = [];
         global.errors = {};
+        global.errors.notFoundStops = {};
         global.errors.stopNoCoords = [];
         global.errors.stopNoNeighboor = [];
         
@@ -974,7 +949,6 @@
         global.isActiveObserved = isActiveObserved;
         global.isActiveScheduled = isActiveScheduled;
         // For debug
-        global.stationIdToCoords = stationIdToCoords;
         global.delayMapColorScale = delayMapColorScale;
         
         // Generates initial table

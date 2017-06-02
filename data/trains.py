@@ -38,20 +38,6 @@ sel["D_stop_scheduled_datetime"] = sel.D_stop_scheduled_datetime\
 
 sel["D_trip_delay"] = sel.D_trip_delay.astype(float)
 
-
-"""
-stops_matrix = sel.pivot(
-    index="Trip_trip_id",
-    columns="Stop_stop_id",
-    values="D_stop_scheduled_datetime"
-)
-
-
-r_stops  = stops_matrix\
-    .apply(lambda x: x.to_dict(), axis=1)\
-    .apply(lambda x: [{"stop_id": k, "time": x[k]} for k in x if pd.notnull(x[k])])\
-    .apply(lambda x: sorted(x, key=lambda y: y["time"]))
-"""
 stops_matrix = pd.pivot_table(
     sel,
     index="Trip_trip_id",
