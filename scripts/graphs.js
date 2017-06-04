@@ -1,5 +1,7 @@
 (function (global){
     
+    global.subsectionsMaxCachedElements = 8;
+    
     global.Graph = function() {
         this.neighbors = {}; // Key = vertex, value = array of neighbors.
         this.cache = [];
@@ -129,17 +131,12 @@
         var self = this;
         // First flush previous dir0/1 arrays, and set renderedAtTime
         this.sections.forEach(function(section){section.subsections.forEach(function(subsection){
-            subsection.atTime = {
-                    renderedAtTime: unixSeconds,
-                    observed: {
-                        dir0: [],
-                        dir1: []
-                    },
-                    scheduled: {
-                        dir0: [],
-                        dir1: []
-                    }
-                }
+            // refresh all but cache
+            subsection.atTime.renderedAtTime= unixSeconds;
+            subsection.atTime.observed.dir0 = [];
+            subsection.atTime.observed.dir1 = [];
+            subsection.atTime.scheduled.dir0 = [];
+            subsection.atTime.scheduled.dir1 = [];
         })})
         // Then add currently active trains
         
@@ -151,7 +148,6 @@
             var to = train.atTime.scheduled.to;
             self.addTrainToSubsection(from, to, train, "scheduled");
         });
-        // SCHEDULED POSTPROCESSING
         
         // OBSERVED
         global.positionedTrains
@@ -161,41 +157,84 @@
             var to = train.atTime.observed.to;
             self.addTrainToSubsection(from, to, train, "observed");
         });
-        // OBSERVED POSTPROCESSING
+        
+        
+        // OBSERVED POSTPROCESSING: cache managing
+        // if time goes backward erase cache
+        if (unixSeconds < global.lastTime){
+            this.sections.forEach(function(section){section.subsections.forEach(function(subsection){
+                subsection.atTime.observed.cachedDir0= [];
+                subsection.atTime.observed.cachedDir1= [];
+            })});
+        }
+        
+        
     };
     
-    global.SectionManager.prototype.addTrainToSubsection = function(from, to, train, type){
+    global.SectionManager.prototype.addTrainToSubsection = function(from, to, train, type, avoidCache){
         // type is either observed or scheduled
-        var answered = this.sections.filter(function(section){
+        var answered = this.sections.find(function(section){
+            // Find if on subsections dir0
             var dir0SubSection = section.subsections.find(
                 function(subsection){
                     return ((from === subsection.from)&&(to === subsection.to));
             });
-            
+            // Find if on subsections dir1
             var dir1SubSection = section.subsections.find(
                 function(subsection){
                     return ((to === subsection.from)&&(from === subsection.to));
             });
+            // It can only be one
             if (dir0SubSection && dir1SubSection){
                 console.log("Error trying to assign train to subsection: for given section, two matching subsections");
                 return false;
             }
+            // If none stop
             if (!dir0SubSection && !dir1SubSection){return false;}
             
-            if (dir0SubSection){dir0SubSection.atTime[type].dir0.push(train);}
-            if (dir1SubSection){dir1SubSection.atTime[type].dir1.push(train);}
+            var matchingSubsection, direction, cachedDir;
+            if (dir0SubSection){
+                matchingSubsection = dir0SubSection;
+                direction = "dir0";
+                cachedDir = "cachedDir0"            
+            }
+            else {
+                matchingSubsection = dir1SubSection;
+                direction = "dir1";
+                cachedDir = "cachedDir1"            
+            }
+            
+            // Current
+            var currentTrainsContainer = matchingSubsection.atTime[type][direction];
+            currentTrainsContainer.push(train);
+                
+            // Cache
+            
+            if (avoidCache){return true;}
+            
+            var cachedTrainsContainer = matchingSubsection.atTime[type][cachedDir];
+            
+            var cache = {
+                lastObservedTimeOnSubsection: global.lastTime,
+                train: train,
+                delayEvolutionOnSubsection: train.atTime.observed.estimatedDelayEvolution
+            }
+
+            // check if train already on cache, if yes, remove previous before adding this one
+            var alreadyCachedTrain = cachedTrainsContainer.find(function(cached){return cached.train.trip===train.trip;});
+            if (alreadyCachedTrain){
+                var index = cachedTrainsContainer.indexOf(alreadyCachedTrain);
+                cachedTrainsContainer.splice(index, 1);
+            }
+            cachedTrainsContainer.push(cache);
+
+            // finally, how many do we want to keep? defined at begining of script
+            if (cachedTrainsContainer.length > global.subsectionsMaxCachedElements){
+                cachedTrainsContainer = cachedTrainsContainer.slice(cachedTrainsContainer.length-global.subsectionsMaxCachedElements);
+            }
+
             return true;
         });
-        /*
-        if (answered.length!==1){
-            console.log("Error for train from "+fromId+" to "+toId+", there are "+answered.length+" matching sections.");
-            console.log(answered);
-            console.log(global.stopIdToStop(fromId));
-            console.log(global.stopIdToStop(toId));
-            return;
-        }
-        console.log("Good")
-        */
     }
 }(window.H))
 

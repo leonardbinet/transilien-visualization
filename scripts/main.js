@@ -15,7 +15,9 @@
                 lat: +d.stop_lat,
                 lon: +d.stop_lon,
                 name: d.stop_name,
-                linkedSections:[]
+                linkedSections:[],
+                linkedSubSections:[]
+
             }
         }
     }
@@ -31,16 +33,25 @@
             var subsection = {
                 from: points[p],
                 to: points[p+1],
+                name: points[p].name +" -> "+ points[p+1].name,
                 distance: stationsDistance(points[p],points[p+1]),
                 atTime: {
                     renderedAtTime: null,
                     observed: {
+                        // at current time
                         dir0: [],
-                        dir1: []
+                        dir1: [],
+                        // with some cached from last minutes
+                        cachedDir0:[],
+                        cachedDir1:[]
                     },
                     scheduled: {
+                        // at current time
                         dir0: [],
-                        dir1: []
+                        dir1: [],
+                        // with some cached from last minutes
+                        cachedDir0:[],
+                        cachedDir1:[]
                     }
                 }
             };
@@ -108,7 +119,7 @@
         return result;
     }
     
-    function datatableTrain(type, train){
+    function parseDatatableTrain(type, train){
         // type is either "observed" or "scheduled"
         // Subsection name
         var cfrom = train.atTime[type].from.name;
@@ -131,6 +142,7 @@
             subsection: subsection
         };
     }
+    
     // TRAIN ACTIVE FUNCTIONS
     function isActiveScheduled(unixSeconds, train){
         return (train.begin < unixSeconds && train.end > unixSeconds)
@@ -149,6 +161,8 @@
         */
         
         var type; // two options: either scheduled, or observed
+        
+        // checks time and transition time
         
         if (global.displayScheduled){
             global.active = global.trips.filter(function (d) {
@@ -196,10 +210,12 @@
         
         drawTrainsAtTime(unixSeconds, transitionDisabled);
         
+        // Compute and render delays evolution
         global.sectionMan.refreshAtTime(unixSeconds);
+        global.renderJam(transitionDisabled);
         
         // Table of active trains
-        var customFunc = datatableTrain.bind(this, type);
+        var customFunc = parseDatatableTrain.bind(this, type);
         global.activeDatatableFormat = global.active.map(customFunc);
         global.updateTableData(global.activeDatatableFormat);
     }
@@ -244,19 +260,19 @@
         3 - Render color of rectangle + curve: representing evolution of delays of trains passed by this station
         */
         
-        var data = global.stations.map(
-            function(station){
+        // STEP 1
+        // First find stations widths
+        var stationsWidths = global.stations.map(function(station){
             var dir0Data = stationWeightedLastDelays(station.stop_id, "dir0", 300);
             var dir1Data = stationWeightedLastDelays(station.stop_id, "dir1", 300);
-            });
+            return {dir0: dir0Data, dir1: dir1Data};
+        });
+        // Then draw it
     }
     
     function drawTrainsAtTime(unixSeconds, transitionDisabled) {
         
         // ARGS PARSING
-        // checks time and transition time
-        if (!unixSeconds) { unixSeconds = global.lastTime; }
-        global.lastTime = unixSeconds;
         var ttime = global.transitionTime;
         if (transitionDisabled){ttime=0;}
         
@@ -351,21 +367,20 @@
     
     // POSITION AND NETWORK FUNCTIONS  
     function networkPreprocessing(){
-        /* build array of stations-sections relationships:
-        {
-            stopId: "stopId",
-            linkedSections:["sectionName1", "sectionName2" ... ]
-        }
-        
-        Then build graph of main nodes
-        */
-        global.nodes = [];
+        // Assign sections and subsection to stations
         global.sections.forEach(function(section){
             // for each section
             section.points.forEach(function(station){
                 if (!station.linkedSections.includes(section)){station.linkedSections.push(section);}
-            })
-            ;
+            });
+            section.subsections.forEach(function(subsection){
+                // for each subsection
+                var fromStation = subsection.from;
+                var toStation = subsection.to;
+                if (!fromStation.linkedSubSections.includes(subsection)){fromStation.linkedSubSections.push(subsection);}       
+                if (!toStation.linkedSubSections.includes(subsection)){toStation.linkedSubSections.push(subsection);}       
+
+            });
         });
         
         // create graph of with only main nodes and sections
@@ -378,6 +393,7 @@
         });
         console.log("Main graph created.");
         */
+        
         // create graph of all stations (small nodes) and subsections
         global.preciseGraph = new global.Graph();
         global.sections.forEach(function(section){
@@ -577,7 +593,7 @@
             previousEstimatedDelay = efrom.estimatedDelay;
             nextEstimatedDelay = eto.estimatedDelay;
             
-            estimatedDelayEvolution = nextEstimatedDelay - nextEstimatedDelay;
+            estimatedDelayEvolution = nextEstimatedDelay - previousEstimatedDelay;
             estimatedDelay = eratio*nextEstimatedDelay + (1-eratio)*previousEstimatedDelay;
         }
 
@@ -612,9 +628,11 @@
         return [midpoint[0] + Math.cos(angle) * global.mapGlyphTrainCircleRadius, midpoint[1] + Math.sin(angle) * global.mapGlyphTrainCircleRadius ];
     }
     
+    // PATH VIZ
     // STATIONS OBSERVED DELAYS 
     function stationWeightedLastDelays(stopId, direction, lastNSeconds){
-        return;
+        // Not yet implemented, for now random
+        return Math.random()*30;
     }
     
     // SCALING FUNCTION
@@ -727,13 +745,15 @@
 
             renderAllAtTime(ui.value, true);
             global.renderingTimeStamp = ui.value;
+            global.lastTime = ui.value;
           },
           change: function( event, ui ) {
-            renderAllAtTime(ui.value);
-            global.renderingTimeStamp = ui.value;
             $( "#slider-text" ).text(moment(ui.value*1000).format("MMMM Do YYYY, h:mm:ss a"));
             $( "#slider-title" ).text(moment(ui.value*1000).format("MMMM Do YYYY, h:mm:ss a"));
-
+            
+            renderAllAtTime(ui.value);
+            global.renderingTimeStamp = ui.value;
+            global.lastTime = ui.value;
             }
         });
     } 
@@ -903,6 +923,11 @@
         return _.reduce(arr, builder, []);
     }
     
+    global.mean = function(arr){
+        var sum = _.reduce(arr, function(memo, num){ return memo + num; }, 0);
+        return sum / arr.length;
+    };
+    
     // EXPRESSIONS HERE: before only function statements
     VIZ.requiresData(['json!data/clean_data/stations.json','json!data/clean_data/h_sections.json', 'json!data/clean_data/trains.json'], true)
         .done(function(stations, sections, trips){
@@ -991,7 +1016,7 @@
         // Sections
         drawSections(global.sections);
         // Stations
-        drawStations(global.stations);
+        //drawStations(global.stations);
         // Tooltip hover over Map of trains and stations
         toolTipInit();
         
@@ -1008,15 +1033,19 @@
         renderTimerDelaySlider();
 
         // DRAWING TRAINS INFO PANEL AT INITIAL TIME
-        //console.log("Display at timestamp "+ global.minUnixSeconds)
-        renderAllAtTime(global.minUnixSeconds);
+        //renderAllAtTime(global.minUnixSeconds);
         
         
         // CHART - ACTIVE TRAINS
         // Computes data along whole day
         computeActiveTrainsPerTime();
+        
         // Generates chart
         global.generateActiveTrainsChart();
+        
+        global.drawInitialSubsectionsJam();
+        
+        drawStations(global.stations);
 
 
     
