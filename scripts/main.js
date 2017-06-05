@@ -979,8 +979,8 @@
         
         // Timer
         global.smoothness = 0.6;
-        global.timeSpeed = 50; // time x60
-        global.timerDelay = 80; // new update every n milliseconds
+        global.timeSpeed = 150; // time real time x N
+        global.timerDelay = 50; // new update every n milliseconds
         global.timerAdd = global.timerDelay*global.timeSpeed/1000; // will add n seconds at each iteration
         // Transition time (shouldn't be much bigger than timerDelay)
         global.transitionTime = global.timerDelay * global.smoothness;
