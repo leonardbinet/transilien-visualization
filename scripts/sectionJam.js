@@ -13,10 +13,24 @@
         if (direction==="dir1"){cachedDir="cachedDir1"; }
         var lastTrainsCache = subsection.atTime.observed[cachedDir];
         
-        var trainsDelayEvolutions = lastTrainsCache.map(function(cachedTrain){return cachedTrain.delayEvolutionOnSubsection});
+        var trainsDelayEvolutions = lastTrainsCache.map(function(cachedTrain){
+            return cachedTrain.delayEvolutionOnSubsection;
+        });
+        
+        
+        var delayWeights =  lastTrainsCache.map(function(cachedTrain){
+            // 0 means current, +120 means 2 mins ago
+            var freshness = global.lastTime - cachedTrain.lastObservedTimeOnSubsection;
+            
+            if (freshness>global.maxFreshness){return 0;}
+            var weight = (1-freshness/global.maxFreshness);
+            return weight;
+        });
+        var weightedValues = trainsDelayEvolutions.map(function(val, i){return val*delayWeights[i];});
+                         
         // for now just try
         //console.log(trainsDelayEvolutions);
-        var mean = global.mean(trainsDelayEvolutions);
+        var mean = global.weightedMean(weightedValues, delayWeights);
         // console.log("Mean of "+mean)
         return mean;
     }
@@ -97,7 +111,6 @@
         });
     }
 
-
     function closestClockwise(thisLine, otherLines) {
         var origAngle = angle(thisLine.segment);
         otherLines = otherLines || [];
@@ -152,13 +165,10 @@
         return Math.atan2((dest[1] - source[1]), (dest[0] - source[0]));
     }
 
-
-
     function offsetPoints(link) {
         // Here is decided how large the rectangle is at points 3 and 4
         var split = link.ids.split("|").map(function (a) {
-            var val = 25;//entrances[a];
-            return distScale(val || 0);
+            return distScale(global.subsectionWidth || 0);
         });
         var p1 = link.segment[0];
         var p2 = link.segment[1];

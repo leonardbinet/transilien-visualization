@@ -32,6 +32,16 @@ section.grey {
 
 }
 
+.train.scheduled {
+    stroke: DimGray;
+    stroke-width: 0.5;
+}
+
+.train.observed {
+    stroke: DimGray;
+    stroke-width: 0.5;
+}
+
 .station { 
     opacity: .6;
     fill: gray;

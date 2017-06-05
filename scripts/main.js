@@ -332,7 +332,7 @@
             .attr('cx', function (d) { return d.atTime.scheduled.pos[0]; })
             .attr('cy', function (d) { return d.atTime.scheduled.pos[1]; })
             .attr("fill", "steelblue")
-            .attr("r", 4)
+            .attr("r", global.mapGlyphTrainCircleRadius-0.5)
             .attr("opacity", global.displayScheduled)
 
         // Update observed
@@ -342,8 +342,8 @@
             .duration(ttime)
             .attr('cx', function (d) { return d.atTime.observed.pos[0]; })
             .attr('cy', function (d) { return d.atTime.observed.pos[1]; })
-            .attr("fill", function(d) {return delayMapColorScale(d.atTime.observed.estimatedDelay); })
-            .attr("r",4)
+            .attr("fill", function(d) {return global.delayMapColorScale(d.atTime.observed.estimatedDelay); })
+            .attr("r", global.mapGlyphTrainCircleRadius-0.5)
             .attr("opacity", global.displayObserved)
 
         
@@ -721,15 +721,41 @@
     }
     
     // COLOR
-    function delayMapColorScale(delay){
-        // takes into account missing values
-        var colorScale = d3.scale.linear()
+    global.delayMapColorScale =  d3.scale.linear()
             .interpolate(d3.interpolateLab)
-            .domain([-300, 0, 200, 600])
-            .range(['rgb(31, 165, 51)', 'rgb(156, 237, 168)', 'rgb(249, 204, 59)', 'rgb(165, 0, 38)']);
-        return colorScale(delay);
+            .domain([-300, 60, 600])
+            .range(['rgb(0, 104, 55)', 'rgb(255, 255, 255)', 'rgb(165, 0, 38)']);
+    
+    function initLegendTrains(){
+        //Append a defs (for definition) element to your SVG
+        var defs = global.svg.append("defs");
+
+        //Append a linearGradient element to the defs and give it a unique id
+        var linearGradient = defs.append("linearGradient")
+            .attr("id", "linear-gradient");
+        
+        //Horizontal gradient
+        linearGradient
+            .attr("x1", "0%")
+            .attr("y1", "0%")
+            .attr("x2", "100%")
+            .attr("y2", "0%");
+        
+         //Append multiple color stops by using D3's data/enter step
+        linearGradient.selectAll("stop") 
+            .data( global.delayMapColorScale.range() )                  
+            .enter().append("stop")
+            .attr("offset", function(d,i) { return i/(global.delayMapColorScale.range().length-1); })
+            .attr("stop-color", function(d) { return d; });
+        
+        //Draw the rectangle and fill with gradient
+        global.svg.append("rect")
+            .attr("width", 80)
+            .attr("height", 20)
+            .style("fill", "url(#linear-gradient)");
     }
     
+   
     // SLIDER AND TIMER FUNCTIONS
     function renderTimeSlider(min, max) {
         $( "#slider" ).slider({
@@ -923,9 +949,20 @@
         return _.reduce(arr, builder, []);
     }
     
+    global.sum = function(arr){
+        return _.reduce(arr, function(memo, num){ return memo + num; }, 0);
+    };
+    
     global.mean = function(arr){
-        var sum = _.reduce(arr, function(memo, num){ return memo + num; }, 0);
+        var sum = global.sum(arr);
         return sum / arr.length;
+    };
+    
+    global.weightedMean = function (arrVals, arrWeights){
+        var weightedValues = arrVals.map(function(val, i){return val*arrWeights[i];});
+        var sum = global.sum(weightedValues);
+        var sumWeights = global.sum(arrWeights);
+        return sum / sumWeights;
     };
     
     // EXPRESSIONS HERE: before only function statements
@@ -938,7 +975,7 @@
         // Chosen line
         global.line="H";
         // Size of trains: to compute distance from path
-        global.mapGlyphTrainCircleRadius = 5.5;
+        global.mapGlyphTrainCircleRadius = 4.0;
         
         // Timer
         global.smoothness = 0.6;
@@ -948,6 +985,12 @@
         // Transition time (shouldn't be much bigger than timerDelay)
         global.transitionTime = global.timerDelay * global.smoothness;
         
+        // Subsections cache for computing delay evolutions
+        global.subsectionsMaxCachedElements = 8;
+        // max taken into account is 20 mins
+        global.maxFreshness = 1200;
+        // Subsection width (scaled afterwards)
+        global.subsectionWidth = 40;
         
         //// INIT
         // Init map svg
@@ -976,8 +1019,6 @@
         // Functions init
         global.isActiveObserved = isActiveObserved;
         global.isActiveScheduled = isActiveScheduled;
-        // For debug
-        global.delayMapColorScale = delayMapColorScale;
         
         // Generates initial table
         global.initDatatable();
@@ -1046,7 +1087,8 @@
         global.drawInitialSubsectionsJam();
         
         drawStations(global.stations);
-
+        
+        // initLegendTrains();
 
     
     });

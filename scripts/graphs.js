@@ -1,7 +1,5 @@
 (function (global){
     
-    global.subsectionsMaxCachedElements = 8;
-    
     global.Graph = function() {
         this.neighbors = {}; // Key = vertex, value = array of neighbors.
         this.cache = [];
