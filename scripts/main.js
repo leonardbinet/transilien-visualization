@@ -287,7 +287,7 @@
         
         // schedule
         enteringGroups
-            .filter(function(d){return global.displayScheduled})
+            .filter(function(d){return isActiveScheduled(unixSeconds, d)})
             .append('circle')
             .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
             .classed('active', function (d) { return d.trip === global.highlightedTrip; })
@@ -307,7 +307,7 @@
         
         // observed
         enteringGroups
-            .filter(function(d){return global.displayObserved})
+            .filter(function(d){return isActiveObserved(unixSeconds, d)})
             .append('circle')
             .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
             .classed('active', function (d) { return d.trip === global.highlightedTrip; })
@@ -327,7 +327,7 @@
 
         // Update schedule
         trainsGroups.select(".train.scheduled")
-            .filter(function(d){return global.displayScheduled})
+            .filter(function(d){return isActiveScheduled(unixSeconds, d)})
             .transition()
             .duration(ttime)
             .attr('cx', function (d) { return d.atTime.scheduled.pos[0]; })
@@ -338,7 +338,7 @@
 
         // Update observed
         trainsGroups.select(".train.observed")
-            .filter(function(d){return global.displayObserved})
+            .filter(function(d){return isActiveObserved(unixSeconds, d)})
             .transition()
             .duration(ttime)
             .attr('cx', function (d) { return d.atTime.observed.pos[0]; })
@@ -1203,9 +1203,6 @@
         drawStations(global.stations);
             //
         // initLegendTrains();
-        
-    
-
     
     });
     }(window.H));
