@@ -42,9 +42,28 @@ section.grey {
     stroke-width: 0.5;
 }
 
+.train.hover{
+    stroke-width: 1.5;
+}
+
 .station { 
     opacity: .6;
     fill: gray;
+}
+
+.station.hover{
+    stroke: DimGray;
+    stroke-width: 1.5;
+}
+
+
+.station-name {
+    font-size: 12px;
+    font-weight: bold;
+    font-family:Arial;
+}
+.station-name.hover {
+    opacity: 1
 }
 
 .tooltip {	
@@ -55,11 +74,11 @@ section.grey {
     overflow: hidden;
     padding: 2px;
     font-size: x-small;
-    font: sans-serif;		
+    font: Arial;		
     background: lightsteelblue;	
     border: 0px;		
-    border-radius: 8px;			
-    pointer-events: none;			
+    border-radius: 4px;
+    pointer-events: none;
 }
 
 td {

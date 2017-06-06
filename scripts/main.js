@@ -228,9 +228,10 @@
             .attr("cx", function(d){return d.lon})
             .attr("cy", function(d){return d.lat})
             .attr("r", 4)
-            .classed("station", true)
+            .classed("hoverable station", true)
             .on('mouseover', hoverStation)
-            .on('mouseout', unHoverAny)    
+            .on('mouseout', unHoverStation)
+            .on('click', function(d){console.log(d);})
     }
     
     function drawSections(sects) {
@@ -286,16 +287,16 @@
         
         // schedule
         enteringGroups
-            .filter(function(d){return isActiveScheduled.bind(this, unixSeconds)(d)})
+            .filter(function(d){return global.displayScheduled})
             .append('circle')
             .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
             .classed('active', function (d) { return d.trip === global.highlightedTrip; })
-            .classed('hover', function (d) { return (d.trip === global.hoveredTrip) && (global.displayScheduled) ; })
+            .classed('hover', function (d) { return d.trip === global.hoveredTrip ; })
             .classed("train", true)
             .classed("scheduled", true)
             //.on('click', function (d) { highlightTrain(d); })
             .on('mouseover', hoverTrain)
-            .on('mouseout', unHoverAny)
+            .on('mouseout', unHoverTrain)
             .on("click", function(d){console.log(d); console.log("scheduled")})
             .attr("r", 2)
             .attr("opacity", global.displayScheduled)
@@ -306,16 +307,16 @@
         
         // observed
         enteringGroups
-            .filter(function(d){return isActiveObserved.bind(this, unixSeconds)(d)})
+            .filter(function(d){return global.displayObserved})
             .append('circle')
             .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
             .classed('active', function (d) { return d.trip === global.highlightedTrip; })
-            .classed('hover', function (d) { return ((d.trip === global.hoveredTrip) && (global.displayObserved)); })
+            .classed('hover', function (d) { return d.trip === global.hoveredTrip; })
             .classed("train", true)
             .classed("observed", true)
             //.on('click', function (d) { highlightTrain(d); })
             .on('mouseover', hoverTrain)
-            .on('mouseout', unHoverAny)
+            .on('mouseout', unHoverTrain)
             .on("click", function(d){console.log(d); console.log("observed")})
             .attr("r", 2)
             .attr("opacity", global.displayObserved)
@@ -326,7 +327,7 @@
 
         // Update schedule
         trainsGroups.select(".train.scheduled")
-            .filter(function(d){return isActiveScheduled.bind(this, unixSeconds)(d)})
+            .filter(function(d){return global.displayScheduled})
             .transition()
             .duration(ttime)
             .attr('cx', function (d) { return d.atTime.scheduled.pos[0]; })
@@ -337,7 +338,7 @@
 
         // Update observed
         trainsGroups.select(".train.observed")
-            .filter(function(d){return isActiveObserved.bind(this, unixSeconds)(d)})
+            .filter(function(d){return global.displayObserved})
             .transition()
             .duration(ttime)
             .attr('cx', function (d) { return d.atTime.observed.pos[0]; })
@@ -363,6 +364,30 @@
             .transition()
             .delay(ttime)
             .remove();
+    }
+    
+    function drawStationsNames(stations){
+        global.svg.selectAll("station-name")
+            .data(stations)
+            .enter()
+            .append("text")
+                .classed("station-name", true)
+                .attr("opacity", function(d){return global.visibleStations.find(function(st){return st.id === d.stop_id}) ? 1 : 0;})
+                .text(function(d){return d.name})
+                .attr("id", function(d){return d.stop_id.slice(10);})
+                .attr("text-anchor", function(d){
+                    var station = global.visibleStations.find(function(st){return st.id === d.stop_id});
+                    var reverse; 
+                    if (station){reverse = station.reverse; }
+                    return reverse? "end" : "start";
+                    })
+                .attr("transform", function(d){
+                    var station = global.visibleStations.find(function(st){return st.id === d.stop_id});
+                    var reverse; 
+                    if (station){reverse = station.reverse; }
+                    var offset = reverse? -5 : 5;
+            return "translate("+(d.lon + offset)+","+d.lat+") rotate(-15)"
+                    })
     }
     
     // POSITION AND NETWORK FUNCTIONS  
@@ -636,26 +661,68 @@
     }
     
     // SCALING FUNCTION
-    function setScale(stations, h, w, border){
+    function setScale(stations, h, w, hborder, wborder){
         // Set scales for GPS coordinates placed on SVG object
         var x = d3.scale.linear()
             .domain(d3.extent(stations, function(station){return station.lon;}))
-            .range([border, w-border]);
+            .range([wborder, w-wborder]);
         global.xScale = x;
 
         var y = d3.scale.linear()
             .domain(d3.extent(stations, function(station){return station.lat;}))
             // inverted range because of coordinates inverted
-            .range([(h-border),border]);
+            .range([(h-hborder),hborder]);
         global.yScale = y;
     }
     
-    // VIZ FUNCTIONS
+    // HOVER HIGHLIGHT FUNCTIONS
+    /*
+    For trains: 
+    - one tooltip, text, position and opacity according to hovered train
+    - hover class has attributes changing stroke
+    
+    */
     function toolTipInit(){
         // Define the div for the tooltip
         global.toolTip = d3.select("body").append("div")	
             .attr("class", "tooltip")				
             .style("opacity", 0);
+    }
+    
+    function hoverTrain(d) {
+        // set hoveredTrip: only one at a time
+        global.hoveredTrip = d.trip;
+        
+        // update tooltip
+        global.toolTip
+            .style("left", (d3.event.pageX + 8) + "px")		
+            .style("top", (d3.event.pageY - 28) + "px")
+            .transition()		
+            .duration(200)		
+            .style("opacity", .7)
+            .text("Train "+d.trip+" currently going from station " + 
+                  d.atTime.observed.from.name+" to station "+ d.atTime.observed.to.name + 
+                  ", has an estimated delay of "+d.atTime.observed.estimatedDelay+" seconds."
+                 );
+        
+        // update css class
+        refreshTrainsHoverClass();
+        }
+    
+    function unHoverTrain() {
+        // set hovered trip as null
+        global.hoveredTrip = null;
+        // update tootlip
+        global.toolTip.transition()		
+            .duration(500)		
+            .style("opacity", 0);	
+        // update css class
+        refreshTrainsHoverClass();
+    }
+    
+    function refreshTrainsHoverClass() {
+        d3.selectAll('.hoverable.train')
+        .classed('hover', function (d) { return d.trip === global.hoveredTrip; });
     }
     
     function highlightTrain(d) {
@@ -667,52 +734,37 @@
         highlight();
         d3.event.stopPropagation();
       }
+
+    /*
+    For stations:
+    - Global variables to know  or station is hovered. One at a time per category.
+    - Css class to update if hovered.
     
-    function unHoverAny() {
-        global.toolTip.transition()		
-            .duration(500)		
-            .style("opacity", 0);	
-        //hoveredTrip = null;
-        //hover();
-    }
-    
-    function hoverAny(d){
-        global.toolTip
-            .style("left", (d3.event.pageX) + "px")		
-            .style("top", (d3.event.pageY - 28) + "px")
-            .transition()		
-            .duration(200)		
-            .style("opacity", .8);   
-    }
-    
-    function hoverTrain(d) {
-        //hoveredTrip = d.trip;
-        hoverAny(d);
-        global.toolTip
-            .text("Train "+d.trip+" currently going from station "+ d.atTime.observed.from.stop_id+" to station "+ d.atTime.observed.to.stop_id+", has an estimated delay of "+d.atTime.observed.previousEstimatedDelay+" seconds.");
-        }
-    
+    */
     function hoverStation(d) {
-        //hoveredTrip = d.trip;
-        hoverAny(d);
-        global.toolTip
-            .text("Station "+d.name+" with stop id "+ d.stop_id);
-        }
-    
-    function brushed() {
-        var lo = brush.extent()[0] / 1000;
-        var hi = brush.extent()[1] / 1000;
-        d3.selectAll('.lined-up .mareyline')
-            .style('opacity', function (d) {
-            return lo < d.secs && hi > d.secs ? 0.7 : 0.1;
-        });
+        global.hoveredStation = d.stop_id;
+        
+        // update css class
+        refreshStationsHoverClass();
+        
+        // make name visible
+        d3.select("#"+d.stop_id.slice(10))
+            .classed('hover', true );
     }
     
-    function hover() {
-        d3.selectAll('.hoverable')
-        .classed('hover', function (d) { return d.trip === hoveredTrip; });
+    function unHoverStation(d) {
+        // make name invisible
+        d3.select("#"+d.stop_id.slice(10)+".station-name")
+            .classed('hover', false );
+        global.hoveredStation = null;
     }
     
+    function refreshStationsHoverClass() {
+        d3.selectAll('.hoverable.station')
+        .classed('hover', function (d) { return d.stop_id === global.hoveredStation; });
+    }
+    
+    // INFO PANEL
     function infoPanel(){
         $( "#nbNotYetTrains" ).text(global.notYet.length);
         $( "#nbActiveTrains" ).text(global.active.length);
@@ -1032,7 +1084,8 @@
         
         //// PARAMETERS
         // Canvas parameters
-        var w = 550, h = 550, border=20;
+        var hborder=25, wborder=80;
+        var w = 500+2*wborder, h = 500+2*hborder;
         // Chosen line
         global.line="H";
         // Size of trains: to compute distance from path
@@ -1089,7 +1142,7 @@
         // sections coordinates.
         var parsedStations = stations.map(parseStation).filter(function(station){if (station){return station}});
         // Compute svg scale given stations positions
-        setScale(parsedStations, h, w, border)
+        setScale(parsedStations, h, w, hborder, wborder)
         // Rescale coordinates of all stations
         global.stations = parsedStations.map(function(station){
             station.lon = global.xScale(station.lon); 
@@ -1144,10 +1197,14 @@
         // Draw subsection jams
         global.drawInitialSubsectionsJam();
         
-        // Draw stations
+        // Draw stations and names
+        global.visibleStations = [{id: "StopPoint:DUA8727600"}, {id: "StopPoint:DUA8727103"}, {id: "StopPoint:DUA8727613", reverse:true}, {id:"StopPoint:DUA8727657"}];
+        drawStationsNames(global.stations);
         drawStations(global.stations);
-        
+            //
         // initLegendTrains();
+        
+    
 
     
     });
