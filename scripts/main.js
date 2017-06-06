@@ -202,8 +202,8 @@
             .map(setTrainsPositions.bind(this, unixSeconds))
             .filter(function(train){
                 if (!train){return; }
-                if (train.atTime.scheduled.pos && train.atTime.scheduled.acceptedEdge){return train; }
-                if (train.atTime.observed.pos && train.atTime.observed.acceptedEdge){return train; }
+                if (train.atTime.scheduled.pos && train.atTime.scheduled.acceptedEdge && global.displayScheduled){return train; }
+                if (train.atTime.observed.pos && train.atTime.observed.acceptedEdge && global.displayObserved){return train; }
             });
         
         infoPanel();
