@@ -9,7 +9,7 @@ The main tool is a map of the network (graph) made of stations and routes.
 ## Screenshots
 
 ![Map-focus](images/map-focus.png)
-![Datatables](images/datatables.png)
+![Datatables](images/datatable.png)
 ![Delays](images/delay-vs-nb-active-trains.png)
 ![Map](images/map.png)
 
