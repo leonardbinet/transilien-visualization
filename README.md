@@ -16,14 +16,14 @@ The main tool is a map of the network (graph) made of stations and routes.
 ## The main steps
 
 ### Initialization
-Parsing data.
-Creating graphs.
-Preprocessing trains' trips to find shortest path and extrapolate missing data about delays.
-Preprocessing summary of trains' delays.
-Render interaction tools (sliders/buttons).
-Render initial map: stations, subsections.
-Render initial datatable.
-Render graph of delays over day.
+- Parsing data.
+- Creating graphs.
+- Preprocessing trains' trips to find shortest path and extrapolate missing data about delays.
+- Preprocessing summary of trains' delays.
+- Render interaction tools (sliders/buttons).
+- Render initial map: stations, subsections.
+- Render initial datatable.
+- Render graph of delays over day.
 
 ### Rendering at time
 At each time modification:
