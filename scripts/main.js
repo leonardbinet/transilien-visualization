@@ -754,7 +754,6 @@
             .attr("height", 20)
             .style("fill", "url(#linear-gradient)");
     }
-    
    
     // SLIDER AND TIMER FUNCTIONS
     function renderTimeSlider(min, max) {
@@ -965,8 +964,70 @@
         return sum / sumWeights;
     };
     
+    // LEGEND FUNCTION
+    
+    // Utility for creating a color scale gradient
+    // After calling VIZ.createColorScaleGradient(scale, 'my-scale')
+    // Can use it to fill a rectangle:
+    // rect.attr('fill', 'url(#my-scale)')
+    function createColorScaleGradient(scale, name) {
+        var gradient = d3.select('body')
+            .appendOnce('svg', 'svgdefs')
+            .attr('width', 0)
+            .attr('height', 0)
+            .appendOnce("defs", 'defs')
+            .appendOnce('linearGradient', name).firstTime
+                .attr("id", name)
+                .attr("x1", "0%")
+                .attr("y1", "0%")
+                .attr("x2", "100%")
+                .attr("y2", "0%")
+                .attr("spreadMethod", "pad");
+
+        var valueToPercentScale = d3.scale.linear()
+            .domain(d3.extent(scale.domain()))
+            .range(["0%", "100%"]);
+
+        gradient.selectAll('stop')
+            .data(scale.domain())
+            .enter()
+          .append("svg:stop")
+            .attr("offset", valueToPercentScale)
+            .attr("stop-color", scale)
+            .attr("stop-opacity", 1);
+    }
+    
+    function initLegendTrains(){
+        //Append a defs (for definition) element to your SVG
+        var defs = global.svg.append("defs");
+
+        //Append a linearGradient element to the defs and give it a unique id
+        var linearGradient = defs.append("linearGradient")
+            .attr("id", "linear-gradient");
+        
+        //Horizontal gradient
+        linearGradient
+            .attr("x1", "0%")
+            .attr("y1", "0%")
+            .attr("x2", "100%")
+            .attr("y2", "0%");
+        
+         //Append multiple color stops by using D3's data/enter step
+        linearGradient.selectAll("stop") 
+            .data( global.delayMapColorScale.range() )                  
+            .enter().append("stop")
+            .attr("offset", function(d,i) { return i/(global.delayMapColorScale.range().length-1); })
+            .attr("stop-color", function(d) { return d; });
+        
+        //Draw the rectangle and fill with gradient
+        global.svg.append("rect")
+            .attr("width", 80)
+            .attr("height", 20)
+            .style("fill", "url(#linear-gradient)");
+    }
+    
     // EXPRESSIONS HERE: before only function statements
-    VIZ.requiresData(['json!data/clean_data/stations.json','json!data/clean_data/h_sections.json', 'json!data/clean_data/trains.json'], true)
+    global.requiresData(['json!data/clean_data/stations.json','json!data/clean_data/h_sections.json', 'json!data/clean_data/trains.json'], true)
         .done(function(stations, sections, trips){
         
         //// PARAMETERS
@@ -1056,8 +1117,7 @@
         //// DRAWING STATIONS AND SECTIONS
         // Sections
         drawSections(global.sections);
-        // Stations
-        //drawStations(global.stations);
+
         // Tooltip hover over Map of trains and stations
         toolTipInit();
         
@@ -1073,9 +1133,6 @@
         // TimerDelay slider
         renderTimerDelaySlider();
 
-        // DRAWING TRAINS INFO PANEL AT INITIAL TIME
-        //renderAllAtTime(global.minUnixSeconds);
-        
         
         // CHART - ACTIVE TRAINS
         // Computes data along whole day
@@ -1084,8 +1141,10 @@
         // Generates chart
         global.generateActiveTrainsChart();
         
+        // Draw subsection jams
         global.drawInitialSubsectionsJam();
         
+        // Draw stations
         drawStations(global.stations);
         
         // initLegendTrains();

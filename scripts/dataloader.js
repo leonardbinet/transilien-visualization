@@ -8,12 +8,12 @@
  * must exist in files.js (created by tools/update-file-sizes.js) in order to load a file.
  *
  * Usage:
- * VIZ.requiresData(['json!file.json', 'csv!file.csv'])
+ * global.requiresData(['json!file.json', 'csv!file.csv'])
  * .progress(function (percent) { ... })
  * .done(function (jsonFile, csvFile) { ... });
  */
 
-(function () {
+(function (global) {
   "use strict";
     
   function Listener(files, changesPageSize) {
@@ -33,11 +33,7 @@
     });
     self.totalSize = files.reduce(function (a, file) {
       var name = file.split('!')[1];
-      if (!VIZ.fileSizes[name]) {
-        console.log("No size for " + name);
-        VIZ.fileSizes[name] = 100;
-      }
-      return a + VIZ.fileSizes[name];
+      return a + 100;
     }, 0);
     files.forEach(function (file) {
       var parts = file.split('!');
@@ -53,7 +49,7 @@
           self.doneListeners = [];
           self.progressListeners = [];
         } else {
-          self.fileProgress(file, VIZ.fileSizes[name]);
+          self.fileProgress(file, 100);
           self.fileDone(file, data);
         }
       });
@@ -93,14 +89,11 @@
       this.doneListeners.forEach(function (listener) {
         listener.apply(self, results);
       });
-      if (self.changesPageSize) {
-        VIZ.anchorScroll();
-      }
     }
   };
 
-  VIZ.requiresData = function (files, changesPageSize) {
+  global.requiresData = function (files, changesPageSize) {
     var listener = new Listener(files, changesPageSize);
     return listener;
   };
-}());
+}(window.H));
