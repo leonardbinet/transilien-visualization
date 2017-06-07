@@ -105,7 +105,7 @@
                     path.push(u);
                     path.reverse();
                     // remove source and target (last is excluded)
-                    path = path.slice(1,path.length);
+                    path = path.slice(1,path.length-1);
                     this.addPathToCache(source, target, path);
                     return path;
                     }

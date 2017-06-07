@@ -439,11 +439,12 @@
     function preprocessTrainPathWithTime(train){
         /* The goal is to find (station, time) of all stations for which the train doesn't stop.
         
+        A- Find passed stations without stop
         The first part is to know by which stations a train has passed, even if it doesn't stop at these stations
         it will add for each station the shortest path to the next station (array of stations at which it doesn't stop).
            {nextStations = []}
-        OK
         
+        B- Guess at what time the train will pass them
         Then it will have to extrapolate at what time the train is supposed to pass at these stations:
         - first calculate total time from initial station to next station: OK
         - find total distance between these stations, passing by found path: OK
@@ -455,6 +456,8 @@
             stop_id:"***",
             time: ***
         }
+        
+        C- Build concatenated path
         */
         
         for (var i=0; i<train.stops.length-1; i++){
