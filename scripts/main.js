@@ -757,6 +757,7 @@
         d3.select("#"+d.stop_id.slice(10)+".station-name")
             .classed('hover', false );
         global.hoveredStation = null;
+        refreshStationsHoverClass();
     }
     
     function refreshStationsHoverClass() {
