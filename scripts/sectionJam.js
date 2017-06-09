@@ -298,6 +298,7 @@
         glyphSegmentOutlines.append('g')
                 .attr('class', function (d) { return '-glyph ' + d.from.stop_id + '-' + d.to.stop_id; })
             .append('path')
+                .classed("section-jam", true)
                 .classed("dir0", true)
                 .datum(function (d) {
                     return {
@@ -312,13 +313,12 @@
                 })
               .attr('fill', mapGlyphSegmentColor.bind(this, "dir0"))
               .attr('d', mapGlyphSegmentVertices.bind(this, "dir0"))
-              .attr("stroke","black")
-              .attr("stroke-width", "0.2px");
 
         // DIR1 to -> from PATH
         glyphSegmentOutlines.append('g')
                 .attr('class', function (d) { return '-glyph ' + d.to.stop_id + '-' + d.from.stop_id; })
             .append('path')
+                .classed("section-jam", true)
                 .classed("dir1", true)
                 .datum(function (d) {
                     return {
@@ -334,8 +334,6 @@
                   })
                 .attr('fill', mapGlyphSegmentColor.bind(this, "dir1"))
                 .attr('d', mapGlyphSegmentVertices.bind(this, "dir1"))
-                .attr("stroke","black")
-                .attr("stroke-width", "0.2px");
         
     };
 }(window.H))

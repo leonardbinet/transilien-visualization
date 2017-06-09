@@ -1,3 +1,4 @@
+/* PAGE DISPLAY */
 body {
   padding-top: 40px;
 }
@@ -5,7 +6,6 @@ body {
 section {
     padding-top: 20px;
     padding-bottom: 20px;
-
 }
 
 section.white {
@@ -24,12 +24,29 @@ section.grey {
     padding-left: 2rem;
 }
 
+
+/* MAP DISPLAY */
+
+text {
+    pointer-events: none;
+}
+
+
 .section { 
     stroke: DimGray;/*#a15256;*/
     stroke-width: 2;
     fill: none;
     opacity: .8;
 
+}
+
+.section-jam {
+    stroke: Grey;
+    stroke-width: 0.2;
+}
+
+.section-jam:hover {
+    stroke-width: 0.9;
 }
 
 .train.scheduled {
@@ -42,7 +59,7 @@ section.grey {
     stroke-width: 0.5;
 }
 
-.train.hover{
+.train:hover {
     stroke-width: 1.5;
 }
 
@@ -51,7 +68,7 @@ section.grey {
     fill: gray;
 }
 
-.station.hover{
+.station:hover {
     stroke: DimGray;
     stroke-width: 1.5;
 }

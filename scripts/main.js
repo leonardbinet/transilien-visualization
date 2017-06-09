@@ -215,9 +215,14 @@
         global.renderJam(transitionDisabled);
         
         // Table of active trains
-        var customFunc = parseDatatableTrain.bind(this, type);
-        global.activeDatatableFormat = global.active.map(customFunc);
+        global.activeDatatableFormat = global.active.map(parseDatatableTrain.bind(this, type));
         global.updateTableData(global.activeDatatableFormat);
+        
+        // Finds from global variable which train to focus on
+        if (global.focusedTrip){
+            global.position
+        }
+        //global.drawTripFocus();
     }
     
     function drawStations(stations) {
@@ -235,6 +240,7 @@
     }
     
     function drawSections(sects) {
+        // ONLY PATHS: necessary to compute path length
         // function computing svg path
         var lineFunction = d3.svg.line()
             .x(function(d) { if (d) {return d.lon; }})
@@ -245,10 +251,10 @@
             .data(sects, function(d){return d.name})
             .enter()
             .append("path")
-            .attr("d", function(d){console.log("Handling section "+d.name); return lineFunction(d.pointsCoord)})
-            .classed("section", true)
-            .on("click", function(d){console.log('Section '+d.name)})
-            .each(function(d) { d.totalLength = this.getTotalLength(); });
+                .attr("d", function(d){return lineFunction(d.pointsCoord)})
+                .classed("section", true)
+                .on("click", function(d){console.log('Section '+d.name)})
+                .each(function(d) { d.totalLength = this.getTotalLength(); });
     }
     
     function drawSectionsJamAtTime(unixSeconds, transitionDisabled){
@@ -277,93 +283,81 @@
         var ttime = global.transitionTime;
         if (transitionDisabled){ttime=0;}
         
+        
         // DISPLAY TRAINS
-        var trainsGroups = global.svg.selectAll('g.train-group')
+        var trainsGroups = global.svg.selectAll('.train')
             .data(global.positionedTrains, function (d) { return d.trip; });
         
-        // Enters
-        var enteringGroups = trainsGroups.enter().append('g')
-            .classed("train-group", true)
+        if (global.displayObserved){
+            // OBSERVED
+            
+            // Update
+            trainsGroups
+                .transition()
+                .duration(ttime)
+                .attr('cx', function (d) { return d.atTime.observed.pos[0]; })
+                .attr('cy', function (d) { return d.atTime.observed.pos[1]; })
+                .attr("fill", function(d) {return global.delayMapColorScale(d.atTime.observed.estimatedDelay); })
+                .attr("r", global.mapGlyphTrainCircleRadius-0.5)
+                .attr("opacity", global.displayObserved)
+            
+            // Enter
+            trainsGroups.enter().append('circle')
+                .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
+                .classed('active', function (d) { return d.trip === global.highlightedTrip; })
+                .classed('hover', function (d) { return d.trip === global.hoveredTrip; })
+                .classed("train", true)
+                .classed("observed", true)
+                .on('mouseover', hoverTrain)
+                .on('mouseout', unHoverTrain)
+                .on("click", function(d){console.log(d); console.log("observed")})
+                .attr("r", 2)
+                .attr("opacity", global.displayObserved)
+                .attr("fill","lightgreen")
+                .attr('cx', function (d) {return d.stops[0].stop.lon;})
+                .attr('cy', function (d) {return d.stops[0].stop.lat;});
+            
+        }
         
-        // schedule
-        enteringGroups
-            .filter(function(d){return isActiveScheduled(unixSeconds, d)})
-            .append('circle')
-            .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
-            .classed('active', function (d) { return d.trip === global.highlightedTrip; })
-            .classed('hover', function (d) { return d.trip === global.hoveredTrip ; })
-            .classed("train", true)
-            .classed("scheduled", true)
-            //.on('click', function (d) { highlightTrain(d); })
-            .on('mouseover', hoverTrain)
-            .on('mouseout', unHoverTrain)
-            .on("click", function(d){console.log(d); console.log("scheduled")})
-            .attr("r", 2)
-            .attr("opacity", global.displayScheduled)
-            .attr("fill","lightgreen")
-            .attr('cx', function (d) {return d.stops[0].lon;})
-            .attr('cy', function (d) {return d.stops[0].lat;})
-        ;
-        
-        // observed
-        enteringGroups
-            .filter(function(d){return isActiveObserved(unixSeconds, d)})
-            .append('circle')
-            .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
-            .classed('active', function (d) { return d.trip === global.highlightedTrip; })
-            .classed('hover', function (d) { return d.trip === global.hoveredTrip; })
-            .classed("train", true)
-            .classed("observed", true)
-            //.on('click', function (d) { highlightTrain(d); })
-            .on('mouseover', hoverTrain)
-            .on('mouseout', unHoverTrain)
-            .on("click", function(d){console.log(d); console.log("observed")})
-            .attr("r", 2)
-            .attr("opacity", global.displayObserved)
-            .attr("fill","lightgreen")
-            .attr('cx', function (d) {return d.stops[0].lon;})
-            .attr('cy', function (d) {return d.stops[0].lat;});
-
-
-        // Update schedule
-        trainsGroups.select(".train.scheduled")
-            .filter(function(d){return isActiveScheduled(unixSeconds, d)})
-            .transition()
-            .duration(ttime)
-            .attr('cx', function (d) { return d.atTime.scheduled.pos[0]; })
-            .attr('cy', function (d) { return d.atTime.scheduled.pos[1]; })
-            .attr("fill", "steelblue")
-            .attr("r", global.mapGlyphTrainCircleRadius-0.5)
-            .attr("opacity", global.displayScheduled)
-
-        // Update observed
-        trainsGroups.select(".train.observed")
-            .filter(function(d){return isActiveObserved(unixSeconds, d)})
-            .transition()
-            .duration(ttime)
-            .attr('cx', function (d) { return d.atTime.observed.pos[0]; })
-            .attr('cy', function (d) { return d.atTime.observed.pos[1]; })
-            .attr("fill", function(d) {return global.delayMapColorScale(d.atTime.observed.estimatedDelay); })
-            .attr("r", global.mapGlyphTrainCircleRadius-0.5)
-            .attr("opacity", global.displayObserved)
-
+        else {
+            // SCHEDULE
+            // Update
+            trainsGroups
+                .transition()
+                .duration(ttime)
+                .attr('cx', function (d) { return d.atTime.scheduled.pos[0]; })
+                .attr('cy', function (d) { return d.atTime.scheduled.pos[1]; })
+                .attr("fill", "steelblue")
+                .attr("r", global.mapGlyphTrainCircleRadius-0.5)
+                .attr("opacity", global.displayScheduled)
+            
+            // Enter
+            trainsGroups.enter().append('circle')
+                .attr('class', function (d) { return 'highlightable hoverable dimmable ' + d.line; })
+                .classed('active', function (d) { return d.trip === global.highlightedTrip; })
+                .classed('hover', function (d) { return d.trip === global.hoveredTrip ; })
+                .classed("train", true)
+                .classed("scheduled", true)
+                .on('mouseover', hoverTrain)
+                .on('mouseout', unHoverTrain)
+                .on("click", function(d){console.log(d); console.log("scheduled")})
+                .attr("r", 2)
+                .attr("opacity", global.displayScheduled)
+                .attr("fill","lightgreen")
+                .attr('cx', function (d) {return d.stops[0].stop.lon;})
+                .attr('cy', function (d) {return d.stops[0].stop.lat;});
+        }
         
         // Exit
         trainsGroups.exit()
-            .select(".train")
             .transition()
             .duration(ttime)
             // first finish till last station then disapear
-            .attr('cx', function (d) {return d.stops[d.stops.length-1].lon; })
-            .attr('cy', function (d) {return d.stops[d.stops.length-1].lat; })
-            .attr("fill","purple")            
+            .attr('cx', function (d) {return d.stops[d.stops.length-1].stop.lon; })
+            .attr('cy', function (d) {return d.stops[d.stops.length-1].stop.lat; })
+            .attr("fill","grey")            
             .attr("r", 3)
-            .remove();
-
-        trainsGroups.exit()
-            .transition()
-            .delay(ttime)
-            .remove();
+            .remove()
     }
     
     function drawStationsNames(stations){
@@ -591,6 +585,7 @@
             sratio = (unixSeconds - sfrom.scheduledTime) / (sto.scheduledTime - sfrom.scheduledTime);
             // Compute position object given: from, to and ratio
             spos = placeWithOffset(sfromStop, stoStop, sratio);
+            
         }
         
         var scheduled = {
@@ -608,7 +603,7 @@
         
         var efrom = train.stops[j];
         var eto = train.stops[j + 1];
-        var eacceptedEdge, eratio, epos, previousEstimatedDelay, nextEstimatedDelay, estimatedDelayEvolution, estimatedDelay;
+        var eacceptedEdge, eratio, epos, previousEstimatedDelay, nextEstimatedDelay, estimatedDelayEvolution, estimatedDelay, efromStop, etoStop;
         
         if (efrom && eto){
             // Check if real edge of precise graph
@@ -623,11 +618,14 @@
             
             estimatedDelayEvolution = nextEstimatedDelay - previousEstimatedDelay;
             estimatedDelay = eratio*nextEstimatedDelay + (1-eratio)*previousEstimatedDelay;
+            
+            efromStop = efrom.stop;
+            etoStop = eto.stop;
         }
 
         var observed = {
-            from: efrom.stop,
-            to: eto.stop,
+            from: efromStop,
+            to: etoStop,
             timeRatio: eratio,
             pos: epos,
             acceptedEdge: eacceptedEdge,
@@ -682,8 +680,6 @@
     /*
     For trains: 
     - one tooltip, text, position and opacity according to hovered train
-    - hover class has attributes changing stroke
-    
     */
     function toolTipInit(){
         // Define the div for the tooltip
@@ -707,9 +703,6 @@
                   d.atTime.observed.from.name+" to station "+ d.atTime.observed.to.name + 
                   ", has an estimated delay of "+d.atTime.observed.estimatedDelay+" seconds."
                  );
-        
-        // update css class
-        refreshTrainsHoverClass();
         }
     
     function unHoverTrain() {
@@ -719,13 +712,6 @@
         global.toolTip.transition()		
             .duration(500)		
             .style("opacity", 0);	
-        // update css class
-        refreshTrainsHoverClass();
-    }
-    
-    function refreshTrainsHoverClass() {
-        d3.selectAll('.hoverable.train')
-        .classed('hover', function (d) { return d.trip === global.hoveredTrip; });
     }
     
     function highlightTrain(d) {
@@ -740,16 +726,10 @@
 
     /*
     For stations:
-    - Global variables to know  or station is hovered. One at a time per category.
-    - Css class to update if hovered.
-    
+    - Global variables to know  or station is hovered.
     */
     function hoverStation(d) {
         global.hoveredStation = d.stop_id;
-        
-        // update css class
-        refreshStationsHoverClass();
-        
         // make name visible
         d3.select("#"+d.stop_id.slice(10))
             .classed('hover', true );
@@ -760,12 +740,6 @@
         d3.select("#"+d.stop_id.slice(10)+".station-name")
             .classed('hover', false );
         global.hoveredStation = null;
-        refreshStationsHoverClass();
-    }
-    
-    function refreshStationsHoverClass() {
-        d3.selectAll('.hoverable.station')
-        .classed('hover', function (d) { return d.stop_id === global.hoveredStation; });
     }
     
     // INFO PANEL
@@ -1096,7 +1070,7 @@
         global.mapGlyphTrainCircleRadius = 4.0;
         
         // Timer
-        global.smoothness = 0.6;
+        global.smoothness = 0.7;
         global.timeSpeed = 150; // time real time x N
         global.timerDelay = 50; // new update every n milliseconds
         global.timerAdd = global.timerDelay*global.timeSpeed/1000; // will add n seconds at each iteration
@@ -1111,6 +1085,9 @@
         global.subsectionWidth = 40;
         
         //// INIT
+        
+        global.visibleStations = [{id: "StopPoint:DUA8727600"}, {id: "StopPoint:DUA8727103"}, {id: "StopPoint:DUA8727613", reverse:true}, {id:"StopPoint:DUA8727657"}];
+        
         // Init map svg
         global.svg = d3.select("#map")
             .append("svg")
@@ -1171,13 +1148,6 @@
         global.maxUnixSeconds = d3.max(d3.values(trips), function (d) { return d.end; });
     
         
-        //// DRAWING STATIONS AND SECTIONS
-        // Sections
-        drawSections(global.sections);
-
-        // Tooltip hover over Map of trains and stations
-        toolTipInit();
-        
         // RENDERING SLIDERS AND TIMERS
         // Timer button
         setButtonInitialState();
@@ -1198,12 +1168,20 @@
         // Generates chart
         global.generateActiveTrainsChart();
         
+        
+        //// DRAWING STATIONS AND SECTIONS
+        // Sections
+        
+        drawSections(global.sections);
+
+        // Tooltip hover over Map of trains and stations
+        toolTipInit();
+        
         // Draw subsection jams
         global.drawInitialSubsectionsJam();
-        
-        // Draw stations and names
-        global.visibleStations = [{id: "StopPoint:DUA8727600"}, {id: "StopPoint:DUA8727103"}, {id: "StopPoint:DUA8727613", reverse:true}, {id:"StopPoint:DUA8727657"}];
         drawStationsNames(global.stations);
+
+        // Draw stations
         drawStations(global.stations);
             //
         // initLegendTrains();
