@@ -1,21 +1,21 @@
 /**
- * dataloader.js
- *
- * Copyright 2014 Michael Barry & Brian Card.  MIT open-source lincense.
- *
- * A thin layer sitting on top of d3.json and d3.csv that handles asynchronous loading
- * of multiple data files, progress reporting, and error hanldling.  File size and hashes
- * must exist in files.js (created by tools/update-file-sizes.js) in order to load a file.
- *
- * Usage:
- * global.requiresData(['json!file.json', 'csv!file.csv'])
- * .progress(function (percent) { ... })
- * .done(function (jsonFile, csvFile) { ... });
- */
+* dataloader.js
+*
+* Copyright 2014 Michael Barry & Brian Card.  MIT open-source lincense.
+*
+* A thin layer sitting on top of d3.json and d3.csv that handles asynchronous loading
+* of multiple data files, progress reporting, and error hanldling.  File size and hashes
+* must exist in files.js (created by tools/update-file-sizes.js) in order to load a file.
+*
+* Usage:
+* global.requiresData(['json!file.json', 'csv!file.csv'])
+* .progress(function (percent) { ... })
+* .done(function (jsonFile, csvFile) { ... });
+*/
 
 (function (global) {
   "use strict";
-    
+
   function Listener(files, changesPageSize) {
     var self = this;
     self.files = files;
@@ -40,19 +40,19 @@
       var type = parts[0];
       var name = parts[1];
       d3[type](name)
-      .on('progress', function() {
-        self.fileProgress(file, d3.event.loaded);
-      })
-      .get(function(error, data) {
-        if (error) {
-          self.errorListeners.forEach(function (listener) { listener(error); });
-          self.doneListeners = [];
-          self.progressListeners = [];
-        } else {
-          self.fileProgress(file, 100);
-          self.fileDone(file, data);
-        }
-      });
+        .on('progress', function () {
+          self.fileProgress(file, d3.event.loaded);
+        })
+        .get(function (error, data) {
+          if (error) {
+            self.errorListeners.forEach(function (listener) { listener(error); });
+            self.doneListeners = [];
+            self.progressListeners = [];
+          } else {
+            self.fileProgress(file, 100);
+            self.fileDone(file, data);
+          }
+        });
     });
   }
 

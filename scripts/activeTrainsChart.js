@@ -1,6 +1,6 @@
-(function(global){
-    
-    global.generateActiveTrainsChart = function(){
+(function (global) {
+
+    global.generateActiveTrainsChart = function () {
         global.ActiveTrainsChart = c3.generate({
             bindto: '#stacked-area-chart-active-trains',
             data: {
@@ -8,7 +8,7 @@
 
                 keys: {
                     value: ["total", "meanDelay"],
-                    x:"date",
+                    x: "date",
                     xFormat: '%Y-%m-%d %H:%M:%S'
                 },
                 axes: {
@@ -20,14 +20,14 @@
                     meanDelay: 'Mean observed delay',
                 }
             },
-            
+
             axis: {
                 x: {
                     type: 'timeseries',
                     tick: {
                         format: '%HH:%MM',
                         outer: false,
-                        count: 25                    
+                        count: 25
                     }
                 },
                 y: {
@@ -39,9 +39,9 @@
                     min: 0,
                     padding: 0
                 }
-                
+
             }
-            
-        });   
+
+        });
     }
 }(window.H))
