@@ -1,10 +1,10 @@
-(function (global) {
+(function(global) {
 
-    global.generateActiveTrainsChart = function () {
-        global.ActiveTrainsChart = c3.generate({
-            bindto: '#stacked-area-chart-active-trains',
+    global.generateActiveTrainsChart = function(domId, activeTrainsData) {
+        c3.generate({
+            bindto: domId,
             data: {
-                json: global.activeTrainsData,
+                json: activeTrainsData,
 
                 keys: {
                     value: ["total", "meanDelay"],

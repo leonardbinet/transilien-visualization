@@ -1,39 +1,4 @@
-(function (global) {
-
-    // FUNCTIONS EXPRESSIONS
-
-
-    var subsectionDelayEvolution = function (direction, subsection) {
-        // list of last observed trains
-        // check if info:
-        if (!subsection.atTime) { return 0; }
-
-        var cachedDir;
-        if (direction === "dir0") { cachedDir = "cachedDir0"; }
-        if (direction === "dir1") { cachedDir = "cachedDir1"; }
-        var lastTrainsCache = subsection.atTime.observed[cachedDir];
-
-        var trainsDelayEvolutions = lastTrainsCache.map(function (cachedTrain) {
-            return cachedTrain.delayEvolutionOnSubsection;
-        });
-
-
-        var delayWeights = lastTrainsCache.map(function (cachedTrain) {
-            // 0 means current, +120 means 2 mins ago
-            var freshness = global.lastTime - cachedTrain.lastObservedTimeOnSubsection;
-
-            if (freshness > global.maxFreshness) { return 0; }
-            var weight = (1 - freshness / global.maxFreshness);
-            return weight;
-        });
-        var weightedValues = trainsDelayEvolutions.map(function (val, i) { return val * delayWeights[i]; });
-
-        // for now just try
-        //console.log(trainsDelayEvolutions);
-        var mean = global.weightedMean(weightedValues, delayWeights);
-        // console.log("Mean of "+mean)
-        return mean;
-    }
+(function(global) {
 
     var scale = 20;
 
@@ -43,9 +8,9 @@
 
     // create svg path from array of points
     var encodeSvgLine = d3.svg.line()
-        .x(function (d) { return d[0]; })
-        .y(function (d) { return d[1]; })
-        .defined(function (d) { return !!d; })
+        .x(function(d) { return d[0]; })
+        .y(function(d) { return d[1]; })
+        .defined(function(d) { return !!d; })
         .interpolate("linear");
 
     // returns color given a delay
@@ -54,9 +19,37 @@
         .domain([-300, 0, 300])
         .range(['rgb(0, 104, 55)', 'rgb(255, 255, 255)', 'rgb(165, 0, 38)']);
 
+    function subsectionDelayEvolution(direction, subsection) {
+        // list of last observed trains
+        // check if info:
+        if (!subsection.atTime) { return 0; }
+
+        var cachedDir;
+        if (direction === "dir0") { cachedDir = "cachedDir0"; }
+        if (direction === "dir1") { cachedDir = "cachedDir1"; }
+        var lastTrainsCache = subsection.atTime.observed[cachedDir];
+
+        var trainsDelayEvolutions = lastTrainsCache.map(function(cachedTrain) {
+            return cachedTrain.delayEvolutionOnSubsection;
+        });
 
 
-    // FUNCTIONS STATEMENTS
+        var delayWeights = lastTrainsCache.map(function(cachedTrain) {
+            // 0 means current, +120 means 2 mins ago
+            var freshness = global.lastTime - cachedTrain.lastObservedTimeOnSubsection;
+
+            if (freshness > global.maxFreshness) { return 0; }
+            var weight = (1 - freshness / global.maxFreshness);
+            return weight;
+        });
+        var weightedValues = trainsDelayEvolutions.map(function(val, i) { return val * delayWeights[i]; });
+
+        // for now just try
+        //console.log(trainsDelayEvolutions);
+        var mean = global.weightedMean(weightedValues, delayWeights);
+        // console.log("Mean of "+mean)
+        return mean;
+    }
 
     // returns color given a segment
     function mapGlyphSegmentColor(direction, segment) {
@@ -68,20 +61,26 @@
     }
 
     /* Miscellaneous utilities
-    * 
-    * Primarily geometric equations for determining intersection
-    * points between lines in the map glyph to decide where to put
-    * the vertices of each polygon
-    *************************************************************/
+     * 
+     * Primarily geometric equations for determining intersection
+     * points between lines in the map glyph to decide where to put
+     * the vertices of each polygon
+     *************************************************************/
     function getSubsectionsGoingToNode(station) {
-        return station.linkedSubSections.map(function (subsection) {
+        return station.linkedSubSections.map(function(subsection) {
             var segment;
             var ids;
             if (subsection.to === station) {
-                segment = [[subsection.from.lon, subsection.from.lat], [subsection.to.lon, subsection.to.lat]];
+                segment = [
+                    [subsection.from.lon, subsection.from.lat],
+                    [subsection.to.lon, subsection.to.lat]
+                ];
                 ids = subsection.from.stop_id + "|" + subsection.to.stop_id;
             } else {
-                segment = [[subsection.to.lon, subsection.to.lat], [subsection.from.lon, subsection.from.lat]];
+                segment = [
+                    [subsection.to.lon, subsection.to.lat],
+                    [subsection.from.lon, subsection.from.lat]
+                ];
                 ids = subsection.to.stop_id + "|" + subsection.from.stop_id;
             }
             return {
@@ -93,14 +92,20 @@
     }
 
     function getSubsectionsLeavingFromNode(station) {
-        return station.linkedSubSections.map(function (subsection) {
+        return station.linkedSubSections.map(function(subsection) {
             var segment;
             var ids;
             if (subsection.from === station) {
-                segment = [[subsection.from.lon, subsection.from.lat], [subsection.to.lon, subsection.to.lat]];
+                segment = [
+                    [subsection.from.lon, subsection.from.lat],
+                    [subsection.to.lon, subsection.to.lat]
+                ];
                 ids = subsection.from.stop_id + "|" + subsection.to.stop_id;
             } else {
-                segment = [[subsection.to.lon, subsection.to.lat], [subsection.from.lon, subsection.from.lat]];
+                segment = [
+                    [subsection.to.lon, subsection.to.lat],
+                    [subsection.from.lon, subsection.from.lat]
+                ];
                 ids = subsection.to.stop_id + "|" + subsection.from.stop_id;
             }
             return {
@@ -116,7 +121,7 @@
         otherLines = otherLines || [];
         var result = null;
         var minAngle = Infinity;
-        otherLines.forEach(function (other) {
+        otherLines.forEach(function(other) {
             if (segmentsAreSame(other, thisLine)) { return; }
             var thisAngle = angle(other.segment) + Math.PI;
             var diff = -normalize(thisAngle - origAngle);
@@ -133,7 +138,7 @@
         otherLines = otherLines || [];
         var result = null;
         var minAngle = Infinity;
-        otherLines.forEach(function (other) {
+        otherLines.forEach(function(other) {
             var thisAngle = angle(other.segment);
             var diff = normalize(origAngle - thisAngle);
             var absDiff = Math.abs(diff);
@@ -167,7 +172,7 @@
 
     function offsetPoints(link) {
         // Here is decided how large the rectangle is at points 3 and 4
-        var split = link.ids.split("|").map(function (a) {
+        var split = link.ids.split("|").map(function(a) {
             return distScale(global.subsectionWidth || 0);
         });
         var p1 = link.segment[0];
@@ -199,8 +204,7 @@
         var x, y;
         if ((m1Infinite && m2Infinite) || Math.abs(m2 - m1) < 0.01) {
             return null;
-        }
-        else if (m1Infinite) {
+        } else if (m1Infinite) {
             x = line1[0][0];
             // y = mx + b
             y = m2 * x + b2;
@@ -240,7 +244,7 @@
     }
 
     // Handle when the mouse is moved over a particular time on the horizon/color band chart
-    global.renderJam = function (transitionDisabled) {
+    global.renderJam = function(transitionDisabled) {
 
         // ARGS PARSING
         var ttime = global.transitionTime;
@@ -261,7 +265,7 @@
             .attr('d', mapGlyphSegmentVertices.bind(this, "dir1"));
     }
 
-    global.drawInitialSubsectionsJam = function () {
+    global.drawInitialSubsectionsJam = function() {
         // INITIAL DRAWING
 
         // *************************************************************/
@@ -284,7 +288,7 @@
         }
         */
 
-        var subsections = [].concat.apply([], global.sections.map(function (section) { return section.subsections; }));
+        var subsections = [].concat.apply([], global.sections.map(function(section) { return section.subsections; }));
 
         // VIZ CREATION
         // create connection groups
@@ -296,16 +300,19 @@
 
         // DIR0: from -> to PATH
         glyphSegmentOutlines.append('g')
-            .attr('class', function (d) { return '-glyph ' + d.from.stop_id + '-' + d.to.stop_id; })
+            .attr('class', function(d) { return '-glyph ' + d.from.stop_id + '-' + d.to.stop_id; })
             .append('path')
             .classed("section-jam", true)
             .classed("dir0", true)
-            .datum(function (d) {
+            .datum(function(d) {
                 return {
                     incoming: getSubsectionsGoingToNode(d.from),
                     line: "H",
                     ids: d.from.stop_id + '|' + d.to.stop_id,
-                    segment: [[d.from.lon, d.from.lat], [d.to.lon, d.to.lat]],
+                    segment: [
+                        [d.from.lon, d.from.lat],
+                        [d.to.lon, d.to.lat]
+                    ],
                     outgoing: getSubsectionsLeavingFromNode(d.to),
                     name: d.from.name + " to " + d.to.name,
                     subsection: d
@@ -316,16 +323,19 @@
 
         // DIR1 to -> from PATH
         glyphSegmentOutlines.append('g')
-            .attr('class', function (d) { return '-glyph ' + d.to.stop_id + '-' + d.from.stop_id; })
+            .attr('class', function(d) { return '-glyph ' + d.to.stop_id + '-' + d.from.stop_id; })
             .append('path')
             .classed("section-jam", true)
             .classed("dir1", true)
-            .datum(function (d) {
+            .datum(function(d) {
                 return {
                     incoming: getSubsectionsGoingToNode(d.to),
                     line: "H",
                     ids: d.to.stop_id + '|' + d.from.stop_id,
-                    segment: [[d.to.lon, d.to.lat], [d.from.lon, d.from.lat]],
+                    segment: [
+                        [d.to.lon, d.to.lat],
+                        [d.from.lon, d.from.lat]
+                    ],
                     outgoing: getSubsectionsLeavingFromNode(d.from),
                     name: d.to.name + " to " + d.from.name,
                     subsection: d

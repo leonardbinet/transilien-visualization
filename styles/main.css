@@ -1,4 +1,5 @@
 /* PAGE DISPLAY */
+
 body {
     padding-top: 40px;
 }
@@ -9,11 +10,11 @@ section {
 }
 
 section.white {
-    background:white
+    background: white
 }
 
 section.grey {
-    background: rgba(245, 245, 245, 0.62) 
+    background: rgba(245, 245, 245, 0.62)
 }
 
 .jumbotron {
@@ -24,9 +25,6 @@ section.grey {
     padding-left: 2rem;
 }
 
-#active-trains-table {
-    min-height: 100px;
-}
 
 /* MAP DISPLAY */
 
@@ -34,13 +32,12 @@ text {
     pointer-events: none;
 }
 
-
-.section { 
-    stroke: DimGray;/*#a15256;*/
+.section {
+    stroke: DimGray;
+    /*#a15256;*/
     stroke-width: 2;
     fill: none;
     opacity: .8;
-
 }
 
 .section-jam {
@@ -66,7 +63,7 @@ text {
     stroke-width: 1.5;
 }
 
-.station { 
+.station {
     opacity: .6;
     fill: gray;
 }
@@ -76,27 +73,27 @@ text {
     stroke-width: 1.5;
 }
 
-
 .station-name {
     font-size: 12px;
     font-weight: bold;
-    font-family:Arial;
+    font-family: Arial;
 }
+
 .station-name.hover {
     opacity: 1
 }
 
-.tooltip {	
-    position: absolute;			
-    text-align: center;			
+.tooltip {
+    position: absolute;
+    text-align: center;
     width: 200px;
     min-height: 30px;
     overflow: hidden;
     padding: 2px;
     font-size: x-small;
-    font: Arial;		
-    background: lightsteelblue;	
-    border: 0px;		
+    font: Arial;
+    background: lightsteelblue;
+    border: 0px;
     border-radius: 4px;
     pointer-events: none;
 }

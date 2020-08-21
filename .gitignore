@@ -1,6 +1,1 @@
-# bower_components/*
-
-hidden/*
-
-# To big
-*.pickle
+bower_components/*
