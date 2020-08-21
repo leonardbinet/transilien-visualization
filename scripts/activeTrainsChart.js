@@ -1,8 +1,8 @@
 (function(global) {
 
-    global.generateActiveTrainsChart = function(domId, activeTrainsData) {
+    global.generateActiveTrainsChart = function(selector, activeTrainsData) {
         c3.generate({
-            bindto: domId,
+            bindto: selector,
             data: {
                 json: activeTrainsData,
 

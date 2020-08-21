@@ -1,13 +1,13 @@
 (function(global) {
     global.stopIdToStop = function(stopId) {
-        var stop = global.stations.find(function(stop) { return stop.stop_id === stopId; });
-        if (!stop) {
-            // adds stop_id to errors stops, and associate it with trip_id
-            if (global.errors.notFoundStops[stopId] === undefined) {
-                global.errors.notFoundStops[stopId] = [];
-                console.log("Added " + stopId + " to stop_ids without found station.")
-            }
-        }
+        const stop = global.stations.find(function(stop) { return stop.stop_id === stopId; });
+        // if (!stop) {
+        //     // adds stop_id to errors stops, and associate it with trip_id
+        //     if (global.errors.notFoundStops[stopId] === undefined) {
+        //         global.errors.notFoundStops[stopId] = [];
+        //         console.log("Added " + stopId + " to stop_ids without found station.")
+        //     }
+        // }
         return stop;
     };
 
@@ -89,7 +89,7 @@
             var realStop = global.stopIdToStop(stop.stop_id);
             if (!realStop) {
                 // if not stop is ignored and trip is added to errors
-                global.errors.notFoundStops[stop.stop_id].push(d);
+                // global.errors.notFoundStops[stop.stop_id].push(d);
                 return;
             }
             fullStop.stop = realStop;

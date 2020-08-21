@@ -19,7 +19,7 @@
         .domain([-300, 0, 300])
         .range(['rgb(0, 104, 55)', 'rgb(255, 255, 255)', 'rgb(165, 0, 38)']);
 
-    function subsectionDelayEvolution(direction, subsection) {
+    function subsectionDelayEvolution(direction, subsection, lastTime, maxFreshness) {
         // list of last observed trains
         // check if info:
         if (!subsection.atTime) { return 0; }
@@ -27,37 +27,30 @@
         var cachedDir;
         if (direction === "dir0") { cachedDir = "cachedDir0"; }
         if (direction === "dir1") { cachedDir = "cachedDir1"; }
-        var lastTrainsCache = subsection.atTime.observed[cachedDir];
+        const lastTrainsCache = subsection.atTime.observed[cachedDir];
 
-        var trainsDelayEvolutions = lastTrainsCache.map(function(cachedTrain) {
+        const trainsDelayEvolutions = lastTrainsCache.map(function(cachedTrain) {
             return cachedTrain.delayEvolutionOnSubsection;
         });
 
-
-        var delayWeights = lastTrainsCache.map(function(cachedTrain) {
+        const delayWeights = lastTrainsCache.map(function(cachedTrain) {
             // 0 means current, +120 means 2 mins ago
-            var freshness = global.lastTime - cachedTrain.lastObservedTimeOnSubsection;
+            const freshness = lastTime - cachedTrain.lastObservedTimeOnSubsection;
 
-            if (freshness > global.maxFreshness) { return 0; }
-            var weight = (1 - freshness / global.maxFreshness);
+            if (freshness > maxFreshness) { return 0; }
+            var weight = (1 - freshness / maxFreshness);
             return weight;
         });
-        var weightedValues = trainsDelayEvolutions.map(function(val, i) { return val * delayWeights[i]; });
+        const weightedValues = trainsDelayEvolutions.map(function(val, i) { return val * delayWeights[i]; });
 
-        // for now just try
-        //console.log(trainsDelayEvolutions);
-        var mean = global.weightedMean(weightedValues, delayWeights);
-        // console.log("Mean of "+mean)
-        return mean;
+        return global.weightedMean(weightedValues, delayWeights);
     }
 
     // returns color given a segment
     function mapGlyphSegmentColor(direction, segment) {
         //console.log(segment)
-        var delayEvolution = subsectionDelayEvolution(direction, segment.subsection) || 0;
-        //console.log(delayEvolution)
-        var color = redGreenDelayColorScale(delayEvolution);
-        return color;
+        const delayEvolution = subsectionDelayEvolution(direction, segment.subsection, global.lastTime, global.maxFreshness) || 0;
+        return redGreenDelayColorScale(delayEvolution);
     }
 
     /* Miscellaneous utilities
