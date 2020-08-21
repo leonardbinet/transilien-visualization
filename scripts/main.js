@@ -1,4 +1,4 @@
-(function(global) {
+(function(global, state) {
     "use strict";
     /*
     TODO: detail main steps
@@ -16,32 +16,31 @@
 
         // checks time and transition time
 
-        if (global.displayScheduled) {
-            global.active = global.trips.filter(function(d) {
+        if (displayScheduled) {
+            state.active = state.trips.filter(function(d) {
                 return global.isActiveScheduled(unixSeconds, d);
             });
 
-            global.finished = global.trips.filter(function(d) {
+            state.finished = state.trips.filter(function(d) {
                 return (d.end < unixSeconds);
             });
 
-            global.notYet = global.trips.filter(function(d) {
+            state.notYet = state.trips.filter(function(d) {
                 return (d.begin > unixSeconds);
             });
 
             type = "scheduled";
 
-        }
-        if (global.displayObserved) {
-            global.active = global.trips.filter(function(d) {
+        } else {
+            state.active = state.trips.filter(function(d) {
                 return global.isActiveObserved(unixSeconds, d);
             });
 
-            global.finished = global.trips.filter(function(d) {
+            state.finished = state.trips.filter(function(d) {
                 return (d.ObservedEnd < unixSeconds);
             });
 
-            global.notYet = global.trips.filter(function(d) {
+            state.notYet = state.trips.filter(function(d) {
                 return (d.ObservedBegin > unixSeconds);
             });
 
@@ -50,58 +49,55 @@
         }
 
         // FIND TRAINS POSITIONS
-        global.positionedTrains = global.active
-            .map(setTrainsPositions.bind(this, unixSeconds, global.preciseGraph))
+        state.positionedTrains = state.active
+            .map(setTrainsPositions.bind(this, unixSeconds, state.preciseGraph))
             .filter(function(train) {
                 if (!train) { return; }
-                if (train.atTime.scheduled.pos && train.atTime.scheduled.acceptedEdge && global.displayScheduled) { return train; }
-                if (train.atTime.observed.pos && train.atTime.observed.acceptedEdge && global.displayObserved) { return train; }
+                if (train.atTime.scheduled.pos && train.atTime.scheduled.acceptedEdge && state.displayScheduled) { return train; }
+                if (train.atTime.observed.pos && train.atTime.observed.acceptedEdge && state.displayObserved) { return train; }
             });
 
         infoPanel();
 
-        drawTrainsAtTime(unixSeconds, transitionDisabled);
+        drawTrainsAtTime(unixSeconds, transitionDisabled, state.transitionTime);
 
         // Compute and render delays evolution
-        global.sectionMan.refreshAtTime(unixSeconds, global.positionedTrains, global.lastTime, global.subsectionsMaxCachedElements);
-        global.renderJam(transitionDisabled);
+        state.sectionManager.refreshAtTime(unixSeconds, state.positionedTrains, state.lastTime);
+        global.renderJam("#map-svg", transitionDisabled, state);
 
         // Table of active trains
-        global.activeDatatableFormat = global.active.map(global.parseDatatableTrain.bind(this, type));
-        global.updateTableData(global.activeDatatableFormat);
+        const activeDatatableFormat = state.active.map(global.parseDatatableTrain.bind(this, type));
+        global.updateTableData(activeDatatableFormat);
 
     }
 
 
-    function drawTrainsAtTime(unixSeconds, transitionDisabled) {
+    function drawTrainsAtTime(unixSeconds, transitionDisabled, transitionTime) {
 
-        // ARGS PARSING
-        var ttime = global.transitionTime;
-        if (transitionDisabled) { ttime = 0; }
-
+        if (transitionDisabled) { transitionTime = 0; }
 
         // DISPLAY TRAINS
-        var trainsGroups = global.svg.selectAll('.train')
-            .data(global.positionedTrains, function(d) { return d.trip; });
+        var trainsGroups = d3.select("#map-svg").selectAll('.train')
+            .data(state.positionedTrains, function(d) { return d.trip; });
 
-        if (global.displayObserved) {
+        if (state.displayObserved) {
             // OBSERVED
 
             // Update
             trainsGroups
                 .transition()
-                .duration(ttime)
+                .duration(transitionTime)
                 .attr('cx', function(d) { return d.atTime.observed.pos[0]; })
                 .attr('cy', function(d) { return d.atTime.observed.pos[1]; })
-                .attr("fill", function(d) { return global.delayMapColorScale(d.atTime.observed.estimatedDelay); })
+                .attr("fill", function(d) { return state.delayMapColorScale(d.atTime.observed.estimatedDelay); })
                 .attr("r", global.mapGlyphTrainCircleRadius - 0.5)
-                .attr("opacity", global.displayObserved)
+                .attr("opacity", state.displayObserved)
 
             // Enter
             trainsGroups.enter().append('circle')
                 .attr('class', function(d) { return 'highlightable hoverable dimmable ' + d.line; })
-                .classed('active', function(d) { return d.trip === global.highlightedTrip; })
-                .classed('hover', function(d) { return d.trip === global.hoveredTrip; })
+                .classed('active', function(d) { return d.trip === state.highlightedTrip; })
+                .classed('hover', function(d) { return d.trip === state.hoveredTrip; })
                 .classed("train", true)
                 .classed("observed", true)
                 .on('mouseover', hoverTrain)
@@ -111,7 +107,7 @@
                     console.log("observed")
                 })
                 .attr("r", 2)
-                .attr("opacity", global.displayObserved)
+                .attr("opacity", state.displayObserved)
                 .attr("fill", "lightgreen")
                 .attr('cx', function(d) { return d.stops[0].stop.lon; })
                 .attr('cy', function(d) { return d.stops[0].stop.lat; });
@@ -121,18 +117,18 @@
             // Update
             trainsGroups
                 .transition()
-                .duration(ttime)
+                .duration(transitionTime)
                 .attr('cx', function(d) { return d.atTime.scheduled.pos[0]; })
                 .attr('cy', function(d) { return d.atTime.scheduled.pos[1]; })
                 .attr("fill", "steelblue")
                 .attr("r", global.mapGlyphTrainCircleRadius - 0.5)
-                .attr("opacity", global.displayScheduled)
+                .attr("opacity", state.displayScheduled)
 
             // Enter
             trainsGroups.enter().append('circle')
                 .attr('class', function(d) { return 'highlightable hoverable dimmable ' + d.line; })
-                .classed('active', function(d) { return d.trip === global.highlightedTrip; })
-                .classed('hover', function(d) { return d.trip === global.hoveredTrip; })
+                .classed('active', function(d) { return d.trip === state.highlightedTrip; })
+                .classed('hover', function(d) { return d.trip === state.hoveredTrip; })
                 .classed("train", true)
                 .classed("scheduled", true)
                 .on('mouseover', hoverTrain)
@@ -142,7 +138,7 @@
                     console.log("scheduled")
                 })
                 .attr("r", 2)
-                .attr("opacity", global.displayScheduled)
+                .attr("opacity", state.displayScheduled)
                 .attr("fill", "lightgreen")
                 .attr('cx', function(d) { return d.stops[0].stop.lon; })
                 .attr('cy', function(d) { return d.stops[0].stop.lat; });
@@ -151,7 +147,7 @@
         // Exit
         trainsGroups.exit()
             .transition()
-            .duration(ttime)
+            .duration(transitionTime)
             // first finish till last station then disapear
             .attr('cx', function(d) { return d.stops[d.stops.length - 1].stop.lon; })
             .attr('cy', function(d) { return d.stops[d.stops.length - 1].stop.lat; })
@@ -161,7 +157,7 @@
     }
 
     function drawStationsNames(stations) {
-        global.svg.selectAll("station-name")
+        d3.select("#map-svg").selectAll("station-name")
             .data(stations)
             .enter()
             .append("text")
@@ -184,32 +180,6 @@
             })
     }
 
-    // POSITION AND NETWORK FUNCTIONS  
-    function graphPreprocessing(graph, sections) {
-        // Assign sections and subsection to stations
-        sections.forEach(function(section) {
-            // for each section
-            section.points.forEach(function(station) {
-                if (!station.linkedSections.includes(section)) { station.linkedSections.push(section); }
-            });
-            section.subsections.forEach(function(subsection) {
-                // for each subsection
-                var fromStation = subsection.from;
-                var toStation = subsection.to;
-                if (!fromStation.linkedSubSections.includes(subsection)) { fromStation.linkedSubSections.push(subsection); }
-                if (!toStation.linkedSubSections.includes(subsection)) { toStation.linkedSubSections.push(subsection); }
-            });
-        });
-
-        // fill graph with all stations and sections
-        sections.forEach(function(section) {
-            for (var l = 0; l < section.points.length - 1; l++) {
-                var beginNode = section.points[l].stop_id;
-                var endNode = section.points[l + 1].stop_id;
-                graph.addEdge(beginNode, endNode);
-            }
-        });
-    }
 
     function preprocessTrainPathWithTime(train) {
         /* The goal is to find (station, time) of all stations for which the train doesn't stop.
@@ -240,8 +210,8 @@
             var toStop = train.stops[i + 1];
 
             // Find path between two consecutive stops
-            fromStop.nextPath = global.preciseGraph.shortestPath(fromStop.stop.stop_id, toStop.stop.stop_id)
-                .map(global.stopIdToStop);
+            fromStop.nextPath = state.preciseGraph.shortestPath(fromStop.stop.stop_id, toStop.stop.stop_id)
+                .map(global.stopIdToStop.bind(this, state.stations));
 
             // If no station passed without stop, or error trying to find: finished
             if (!fromStop.nextPath) { continue; }
@@ -458,17 +428,17 @@
     */
     function toolTipInit() {
         // Define the div for the tooltip
-        global.toolTip = d3.select("body").append("div")
+        state.toolTip = d3.select("body").append("div")
             .attr("class", "tooltip")
             .style("opacity", 0);
     }
 
     function hoverTrain(d) {
         // set hoveredTrip: only one at a time
-        global.hoveredTrip = d.trip;
+        state.hoveredTrip = d.trip;
 
         // update tooltip
-        global.toolTip
+        state.toolTip
             .style("left", (d3.event.pageX + 8) + "px")
             .style("top", (d3.event.pageY - 28) + "px")
             .transition()
@@ -482,9 +452,9 @@
 
     function unHoverTrain() {
         // set hovered trip as null
-        global.hoveredTrip = null;
+        state.hoveredTrip = null;
         // update tootlip
-        global.toolTip.transition()
+        state.toolTip.transition()
             .duration(500)
             .style("opacity", 0);
     }
@@ -501,14 +471,14 @@
 
     // INFO PANEL
     function infoPanel() {
-        $("#nbNotYetTrains").text(global.notYet.length);
-        $("#nbActiveTrains").text(global.active.length);
-        $("#nbFinishedTrains").text(global.finished.length);
-        $("#nbDisplayError").text(global.active.length - global.positionedTrains.length);
+        $("#nbNotYetTrains").text(state.notYet.length);
+        $("#nbActiveTrains").text(state.active.length);
+        $("#nbFinishedTrains").text(state.finished.length);
+        $("#nbDisplayError").text(state.active.length - state.positionedTrains.length);
     }
 
     // COLOR
-    global.delayMapColorScale = d3.scale.linear()
+    state.delayMapColorScale = d3.scale.linear()
         .interpolate(d3.interpolateLab)
         .domain([-300, 60, 600])
         .range(['rgb(0, 104, 55)', 'rgb(255, 255, 255)', 'rgb(165, 0, 38)']);
@@ -526,17 +496,17 @@
                 $("#slider-text").text(moment(ui.value * 1000).format("MMMM Do YYYY, h:mm:ss a"));
                 $("#slider-title").text(moment(ui.value * 1000).format("MMMM Do YYYY, h:mm:ss a"));
 
-                renderAllAtTime(ui.value, true, global.displayScheduled);
-                global.renderingTimeStamp = ui.value;
-                global.lastTime = ui.value;
+                renderAllAtTime(ui.value, true, state.displayScheduled);
+                state.renderingTimeStamp = ui.value;
+                state.lastTime = ui.value;
             },
             change: function(event, ui) {
                 $("#slider-text").text(moment(ui.value * 1000).format("MMMM Do YYYY, h:mm:ss a"));
                 $("#slider-title").text(moment(ui.value * 1000).format("MMMM Do YYYY, h:mm:ss a"));
 
-                renderAllAtTime(ui.value, false, global.displayScheduled);
-                global.renderingTimeStamp = ui.value;
-                global.lastTime = ui.value;
+                renderAllAtTime(ui.value, false, state.displayScheduled);
+                state.renderingTimeStamp = ui.value;
+                state.lastTime = ui.value;
             }
         });
     }
@@ -546,31 +516,31 @@
         // previous time
         var previous = $("#slider").slider("option", "value");
 
-        $("#slider").slider('value', previous + global.timerAdd);
-        if (global.timerActivated) {
-            setTimeout(sliderTimerUpdate, global.timerDelay);
+        $("#slider").slider('value', previous + state.timerAdd);
+        if (state.timerActivated) {
+            setTimeout(sliderTimerUpdate, state.timerDelay);
         }
     }
 
     function setButtonInitialState() {
         // Timer button
         $("#button").on("click", function() {
-            global.timerActivated = !global.timerActivated;
+            state.timerActivated = !state.timerActivated;
             sliderTimerUpdate();
-            if (global.timerActivated) { $("#button").text("Stop"); } else { $("#button").text("Start"); }
+            if (state.timerActivated) { $("#button").text("Stop"); } else { $("#button").text("Start"); }
         });
         // Scheduled button
         $("#scheduled").closest('label').on("click", function() {
             console.log("Display Schedule");
-            global.displayScheduled = 1;
-            global.displayObserved = 0;
+            state.displayScheduled = 1;
+            state.displayObserved = 0;
 
         });
         // Observed button
         $("#observed").closest('label').on("click", function() {
             console.log("Display Observed");
-            global.displayObserved = 1;
-            global.displayScheduled = 0;
+            state.displayObserved = 1;
+            state.displayScheduled = 0;
 
         });
     }
@@ -579,12 +549,12 @@
         $("#speed").slider({
             orientation: "horizontal",
             animate: "slow",
-            value: global.timeSpeed,
+            value: state.timeSpeed,
             min: 0,
             max: 500,
             slide: function(event, ui) {
                 $("#speed-value").text(ui.value);
-                global.timeSpeed = ui.value;
+                state.timeSpeed = ui.value;
                 recomputeTiming();
             }
         });
@@ -594,24 +564,24 @@
         $("#timer-delay").slider({
             orientation: "horizontal",
             animate: "slow",
-            value: global.timerDelay,
+            value: state.timerDelay,
             min: 15,
             max: 150,
             slide: function(event, ui) {
                 $("#timer-delay-value").text(ui.value);
-                global.timerDelay = ui.value;
+                state.timerDelay = ui.value;
                 recomputeTiming();
             }
         });
     }
 
     function recomputeTiming() {
-        global.timerAdd = global.timerDelay * global.timeSpeed / 1000; // will add n seconds at each iteration
+        state.timerAdd = state.timerDelay * state.timeSpeed / 1000; // will add n seconds at each iteration
         // Transition time (shouldn't be much bigger than timerDelay)
-        global.transitionTime = global.timerDelay * global.smoothness;
+        state.transitionTime = state.timerDelay * global.smoothness;
     }
 
-    global.preprocessActiveTrainsPerTime = function(minUnixSeconds, maxUnixSeconds, trips, isActiveObserved, graph) {
+    global.preprocessActiveTrainsPerTime = function(minUnixSeconds, maxUnixSeconds, trips, graph) {
         /* returns in following format: array of:
         {
             date: timestamp,
@@ -622,7 +592,7 @@
         */
         const activeTrainsData = [];
         for (var unixSeconds = minUnixSeconds; unixSeconds < maxUnixSeconds; unixSeconds += 600) {
-            const active = trips.filter(isActiveObserved.bind(this, unixSeconds));
+            const active = trips.filter(global.isActiveObserved.bind(this, unixSeconds));
 
             active.map(setTrainsPositions.bind(this, unixSeconds, graph))
                 .filter(function(train) {
@@ -646,6 +616,8 @@
         .done(function(stations, sections, rawTrips) {
 
             //// PARAMETERS
+            const svgId = "map-svg"
+            const svgSelector = `#${svgId}`;
             // Canvas parameters
             const hborder = 25;
             const wborder = 80;
@@ -653,17 +625,18 @@
             const h = 500 + 2 * hborder;
 
             // Chosen line
+
             global.line = "H";
             // Size of trains: to compute distance from path
             global.mapGlyphTrainCircleRadius = 4.0;
 
             // Timer
             global.smoothness = 0.7;
-            global.timeSpeed = 150; // time real time x N
-            global.timerDelay = 50; // new update every n milliseconds
-            global.timerAdd = global.timerDelay * global.timeSpeed / 1000; // will add n seconds at each iteration
+            state.timeSpeed = 150; // time real time x N
+            state.timerDelay = 50; // new update every n milliseconds
+            state.timerAdd = state.timerDelay * state.timeSpeed / 1000; // will add n seconds at each iteration
             // Transition time (shouldn't be much bigger than timerDelay)
-            global.transitionTime = global.timerDelay * global.smoothness;
+            state.transitionTime = state.timerDelay * global.smoothness;
 
             // Subsections cache for computing delay evolutions
             global.subsectionsMaxCachedElements = 8;
@@ -671,6 +644,7 @@
             global.maxFreshness = 1200;
             // Subsection width (scaled afterwards)
             global.subsectionWidth = 40;
+            global.scale = 20;
 
             global.visibleStations = [
                 { id: "StopPoint:DUA8727600" },
@@ -681,28 +655,28 @@
 
             //// INIT
             // Init map svg
-            global.svg = d3.select("#map")
+            d3.select("#map")
                 .append("svg")
                 .attr("width", w)
                 .attr("height", h)
-                .attr("id", "map-svg")
+                .attr("id", svgId)
                 .classed("center-block", true);
 
             // init cache results
-            global.cache = {};
-            global.cache.stationsDistances = [];
-            global.errors = {};
-            global.errors.notFoundStops = {};
-            global.errors.stopNoCoords = [];
-            global.errors.stopNoNeighboor = [];
+            state.cache = {};
+            state.cache.stationsDistances = [];
+            state.errors = {};
+            state.errors.notFoundStops = {};
+            state.errors.stopNoCoords = [];
+            state.errors.stopNoNeighboor = [];
 
             // Highlight and hover init
-            global.highlightedTrip = null;
-            global.hoveredTrip = null;
+            state.highlightedTrip = null;
+            state.hoveredTrip = null;
 
             // Scheduled or observed
-            global.displayScheduled = 0;
-            global.displayObserved = 1;
+            state.displayScheduled = 0;
+            state.displayObserved = 1;
 
             // Generates initial table
             global.initDatatable();
@@ -710,11 +684,11 @@
             //// DATA IMPORT, PARSING, SCALING OF STATIONS
             // Stations are imported before because their coordinates are used for scaling, and then used to compute
             // sections coordinates.
-            var parsedStations = stations.map(global.parseStation).filter(function(station) { if (station) { return station } });
+            const parsedStations = stations.map(global.parseStation).filter(function(station) { if (station) { return station } });
             // Compute svg scale given stations positions
             setScale(parsedStations, h, w, hborder, wborder)
                 // Rescale coordinates of all stations
-            global.stations = parsedStations.map(function(station) {
+            state.stations = parsedStations.map(function(station) {
                 station.lon = global.xScale(station.lon);
                 station.lat = global.yScale(station.lat);
                 return station;
@@ -722,30 +696,30 @@
 
             //// DATA IMPORT, PARSING OF SECTIONS AND TRIPS
             // Sections
-            global.sections = sections.map(global.parseSection);
+            state.sections = sections.map(global.parseSection.bind(this, state.stations));
             // Graph preprocessing (to then find trains shortest paths between stations)
             // create graph of all stations and sections
-            global.preciseGraph = new global.Graph();
-            global.graphPreprocessing(global.preciseGraph, global.sections);
-            global.sectionMan = new global.SectionManager(global.sections);
+            state.preciseGraph = new global.Graph();
+            global.graphPreprocessing(state.preciseGraph, state.sections);
+            state.sectionManager = new global.SectionManager(state.sections);
 
             // Trains
-            global.trips = rawTrips.map(global.parseTrip).filter(function(trip) { if (trip) { return trip } });
+            state.trips = rawTrips.map(global.parseTrip.bind(this, state.stations)).filter(function(trip) { if (trip) { return trip } });
             // Find train shortest paths and estimate time with delay
-            global.trips.forEach(preprocessTrainPathWithTime);
+            state.trips.forEach(preprocessTrainPathWithTime);
 
             // Finding trains range of dates
-            global.minUnixSeconds = d3.min(d3.values(global.trips), function(d) { return d.begin; });
-            global.maxUnixSeconds = d3.max(d3.values(global.trips), function(d) { return d.end; });
+            state.minUnixSeconds = d3.min(d3.values(state.trips), function(d) { return d.begin; });
+            state.maxUnixSeconds = d3.max(d3.values(state.trips), function(d) { return d.end; });
 
 
             // RENDERING SLIDERS AND TIMERS
             // Timer button
             setButtonInitialState();
             // Lasttime init
-            global.lastTime = global.minUnixSeconds;
+            state.lastTime = state.minUnixSeconds;
             // Slider init
-            renderTimeSlider(global.minUnixSeconds, global.maxUnixSeconds);
+            renderTimeSlider(state.minUnixSeconds, state.maxUnixSeconds);
             // Speed slider
             renderSpeedSlider();
             // TimerDelay slider
@@ -754,25 +728,25 @@
 
             // CHART - ACTIVE TRAINS
             // Computes data along whole day
-            global.activeTrainsData = global.preprocessActiveTrainsPerTime(global.minUnixSeconds, global.maxUnixSeconds, global.trips, global.isActiveObserved, global.preciseGraph);
+            state.activeTrainsData = global.preprocessActiveTrainsPerTime(state.minUnixSeconds, state.maxUnixSeconds, state.trips, state.preciseGraph);
 
             // Generates chart
-            global.generateActiveTrainsChart('#stacked-area-chart-active-trains', global.activeTrainsData);
+            global.generateActiveTrainsChart('#stacked-area-chart-active-trains', state.activeTrainsData);
 
 
             //// DRAWING STATIONS AND SECTIONS
             // Sections
-            global.drawSections("#map-svg", global.sections);
+            global.drawSections(svgSelector, state.sections);
 
             // Tooltip hover over Map of trains and stations
             toolTipInit();
 
             // Draw subsection jams
-            global.drawInitialSubsectionsJam();
-            drawStationsNames(global.stations);
+            global.drawInitialSubsectionsJam(svgSelector, state.sections);
+            drawStationsNames(state.stations);
 
             // Draw stations
-            global.drawStations("#map-svg", global.stations);
+            global.drawStations(state, svgSelector, state.stations);
 
         });
-}(window.H));
+}(window.H, window.H.state));

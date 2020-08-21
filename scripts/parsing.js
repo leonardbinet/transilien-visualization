@@ -1,10 +1,10 @@
 (function(global) {
-    global.stopIdToStop = function(stopId) {
-        const stop = global.stations.find(function(stop) { return stop.stop_id === stopId; });
+    global.stopIdToStop = function(stations, stopId) {
+        const stop = stations.find(function(stop) { return stop.stop_id === stopId; });
         // if (!stop) {
         //     // adds stop_id to errors stops, and associate it with trip_id
-        //     if (global.errors.notFoundStops[stopId] === undefined) {
-        //         global.errors.notFoundStops[stopId] = [];
+        //     if (errors.notFoundStops[stopId] === undefined) {
+        //         errors.notFoundStops[stopId] = [];
         //         console.log("Added " + stopId + " to stop_ids without found station.")
         //     }
         // }
@@ -27,11 +27,11 @@
         }
     }
 
-    global.parseSection = function(d, i) {
+    global.parseSection = function(stations, d, i) {
         // Extract stop_ids (we don't keep names, they are useful for conception/debugging only)
         var points = d.points.map(function(o) { return Object.keys(o)[0] });
         // Replace by real stations objects
-        var points = points.map(global.stopIdToStop);
+        var points = points.map(global.stopIdToStop.bind(this, stations));
         var endPoints = [points[0], points[points.length - 1]];
         var subsections = [];
         for (var p = 0; p < points.length - 1; p++) {
@@ -78,7 +78,7 @@
         };
     }
 
-    global.parseTrip = function(d, i) {
+    global.parseTrip = function(stations, d, i) {
         // if >10000, it is an error of date parsing
         var secs = +d.end - +d.begin;
         if (secs > 10000) { return; }
@@ -86,10 +86,10 @@
         var stops = d.stops.map(function(stop) {
             var fullStop = {};
             // checks if stop_id is among imported stations
-            var realStop = global.stopIdToStop(stop.stop_id);
+            var realStop = global.stopIdToStop(stations, stop.stop_id);
             if (!realStop) {
                 // if not stop is ignored and trip is added to errors
-                // global.errors.notFoundStops[stop.stop_id].push(d);
+                // state.errors.notFoundStops[stop.stop_id].push(d);
                 return;
             }
             fullStop.stop = realStop;

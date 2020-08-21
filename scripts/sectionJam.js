@@ -1,25 +1,25 @@
 (function(global) {
 
-    var scale = 20;
+    const scale = 20;
 
-    var distScale = d3.scale.linear()
+    const distScale = d3.scale.linear()
         .domain([0, 100])
         .range([0.15 * scale, 0.7 * scale])
 
     // create svg path from array of points
-    var encodeSvgLine = d3.svg.line()
+    const encodeSvgLine = d3.svg.line()
         .x(function(d) { return d[0]; })
         .y(function(d) { return d[1]; })
         .defined(function(d) { return !!d; })
         .interpolate("linear");
 
     // returns color given a delay
-    var redGreenDelayColorScale = d3.scale.linear()
+    const redGreenDelayColorScale = d3.scale.linear()
         .interpolate(d3.interpolateLab)
         .domain([-300, 0, 300])
         .range(['rgb(0, 104, 55)', 'rgb(255, 255, 255)', 'rgb(165, 0, 38)']);
 
-    function subsectionDelayEvolution(direction, subsection, lastTime, maxFreshness) {
+    function subsectionDelayEvolution(direction, subsection, lastTime) {
         // list of last observed trains
         // check if info:
         if (!subsection.atTime) { return 0; }
@@ -37,8 +37,8 @@
             // 0 means current, +120 means 2 mins ago
             const freshness = lastTime - cachedTrain.lastObservedTimeOnSubsection;
 
-            if (freshness > maxFreshness) { return 0; }
-            var weight = (1 - freshness / maxFreshness);
+            if (freshness > global.maxFreshness) { return 0; }
+            var weight = (1 - freshness / global.maxFreshness);
             return weight;
         });
         const weightedValues = trainsDelayEvolutions.map(function(val, i) { return val * delayWeights[i]; });
@@ -47,9 +47,9 @@
     }
 
     // returns color given a segment
-    function mapGlyphSegmentColor(direction, segment) {
+    function mapGlyphSegmentColor(direction, lastTime, segment) {
         //console.log(segment)
-        const delayEvolution = subsectionDelayEvolution(direction, segment.subsection, global.lastTime, global.maxFreshness) || 0;
+        const delayEvolution = subsectionDelayEvolution(direction, segment.subsection, lastTime) || 0;
         return redGreenDelayColorScale(delayEvolution);
     }
 
@@ -78,7 +78,7 @@
             }
             return {
                 segment: segment,
-                line: "H",
+                line: global.line,
                 ids: ids,
             };
         });
@@ -103,7 +103,7 @@
             }
             return {
                 segment: segment,
-                line: "H",
+                line: global.line,
                 ids: ids,
             };
         });
@@ -237,34 +237,34 @@
     }
 
     // Handle when the mouse is moved over a particular time on the horizon/color band chart
-    global.renderJam = function(transitionDisabled) {
+    global.renderJam = function(selector, transitionDisabled, state) {
 
         // ARGS PARSING
-        var ttime = global.transitionTime;
+        var ttime = state.transitionTime;
         if (transitionDisabled) { ttime = 0; }
 
         // INITIAL DRAWING
         // tell the glyph to redraw
-        global.svg.selectAll('path.dir0')
+        d3.select(selector).selectAll('path.dir0')
             .transition()
             .duration(ttime)
-            .attr('fill', mapGlyphSegmentColor.bind(this, "dir0"))
+            .attr('fill', mapGlyphSegmentColor.bind(this, "dir0", state.lastTime))
             .attr('d', mapGlyphSegmentVertices.bind(this, "dir0"));
 
-        global.svg.selectAll('path.dir1')
+        d3.select(selector).selectAll('path.dir1')
             .transition()
             .duration(ttime)
-            .attr('fill', mapGlyphSegmentColor.bind(this, "dir1"))
+            .attr('fill', mapGlyphSegmentColor.bind(this, "dir1", state.lastTime))
             .attr('d', mapGlyphSegmentVertices.bind(this, "dir1"));
     }
 
-    global.drawInitialSubsectionsJam = function() {
+    global.drawInitialSubsectionsJam = function(selector, sections, lastTime) {
         // INITIAL DRAWING
 
         // *************************************************************/
 
         /* DATA FORMAT
-        In global.sections[i].subsections
+        In state.sections[i].subsections
         {
             from: {
                 stop_id: "id",
@@ -281,11 +281,11 @@
         }
         */
 
-        var subsections = [].concat.apply([], global.sections.map(function(section) { return section.subsections; }));
+        var subsections = [].concat.apply([], sections.map(function(section) { return section.subsections; }));
 
         // VIZ CREATION
         // create connection groups
-        var glyphSegmentOutlines = global.svg.selectAll('.connect')
+        var glyphSegmentOutlines = d3.select(selector).selectAll('.connect')
             .data(subsections)
             .enter()
             .append('g')
@@ -311,7 +311,7 @@
                     subsection: d
                 };
             })
-            .attr('fill', mapGlyphSegmentColor.bind(this, "dir0"))
+            .attr('fill', mapGlyphSegmentColor.bind(this, "dir0", lastTime))
             .attr('d', mapGlyphSegmentVertices.bind(this, "dir0"))
 
         // DIR1 to -> from PATH
@@ -335,7 +335,7 @@
 
                 };
             })
-            .attr('fill', mapGlyphSegmentColor.bind(this, "dir1"))
+            .attr('fill', mapGlyphSegmentColor.bind(this, "dir1", lastTime))
             .attr('d', mapGlyphSegmentVertices.bind(this, "dir1"))
 
     };

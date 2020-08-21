@@ -1,8 +1,8 @@
 (function(global) {
 
-    global.tripsWithPassedStations = function() {
+    global.tripsWithPassedStations = function(state) {
         // for troubleshooting, returns list of trips with identified passing stations
-        return global.trips.filter(function(trip) {
+        return state.trips.filter(function(trip) {
             // among all stops
             return trip.stops.find(function(stop) {
                 // has a non undefined nextPath attribute
@@ -12,9 +12,9 @@
         });
     }
 
-    global.tripsWithPrecisePathError = function() {
+    global.tripsWithPrecisePathError = function(state) {
         // for troubleshooting, returns list of trips with identified passing stations
-        var tripsWithErrors = global.trips.filter(function(trip) {
+        var tripsWithErrors = state.trips.filter(function(trip) {
             // that among all stops
             var lastStopId = trip.stops[trip.stops.length - 1].stop_id;
             var hasStopError = trip.stops.find(function(stop) {
@@ -28,12 +28,12 @@
         return tripsWithErrors;
     }
 
-    global.activeTripsWithoutPosAtTime = function() {
+    global.activeTripsWithoutPosAtTime = function(state) {
         // to know which trains haven't been displayed because of errors
-        return global.active
+        return state.active
             .filter(function(trip) {
-                if (!global.positionedTrains.includes(trip)) { return true; }
+                if (!state.positionedTrains.includes(trip)) { return true; }
             });
     }
 
-}(window.H))
+}(window.H, window.H.state))

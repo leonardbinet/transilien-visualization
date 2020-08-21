@@ -1,20 +1,20 @@
 (function(global) {
 
-    function hoverStation(d) {
-        global.hoveredStation = d.stop_id;
+    function hoverStation(state, d) {
+        state.hoveredStation = d.stop_id;
         // make name visible
         d3.select("#" + d.stop_id.slice(10))
             .classed('hover', true);
     }
 
-    function unHoverStation(d) {
+    function unHoverStation(state, d) {
         // make name invisible
         d3.select("#" + d.stop_id.slice(10) + ".station-name")
             .classed('hover', false);
-        global.hoveredStation = null;
+        state.hoveredStation = null;
     }
 
-    global.drawStations = function(selector, stations) {
+    global.drawStations = function(state, selector, stations) {
         d3.select(selector).selectAll(".station")
             .data(stations, function(d) { return d.stop_id })
             .enter()
@@ -23,8 +23,8 @@
             .attr("cy", function(d) { return d.lat })
             .attr("r", 4)
             .classed("hoverable station", true)
-            .on('mouseover', hoverStation)
-            .on('mouseout', unHoverStation)
+            .on('mouseover', hoverStation.bind(this, state))
+            .on('mouseout', unHoverStation.bind(this, state))
             .on('click', function(d) { console.log(d); })
     }
 

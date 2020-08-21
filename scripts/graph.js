@@ -86,8 +86,8 @@
                 neighbors = this.neighbors[u];
             if (!neighbors) {
                 console.log("No neighbor for stop " + u);
-                // if (!global.errors.stopNoNeighboor.find(function(d) { return d === u; }))
-                //     global.errors.stopNoNeighboor.push(u);
+                if (!state.errors.stopNoNeighboor.find(function(d) { return d === u; }))
+                    state.errors.stopNoNeighboor.push(u);
                 return [];
             }
             for (var i = 0; i < neighbors.length; ++i) {
@@ -125,7 +125,7 @@
         this.sections = sections;
     };
 
-    global.SectionManager.prototype.refreshAtTime = function(unixSeconds, positionedTrains, lastTime, subsectionsMaxCachedElements) {
+    global.SectionManager.prototype.refreshAtTime = function(unixSeconds, positionedTrains, lastTime) {
         // "this" keyword will refer to other context in map/forEach loops
         const self = this;
         // First flush previous dir0/1 arrays, and set renderedAtTime
@@ -147,7 +147,7 @@
             .forEach(function(train) {
                 var from = train.atTime.scheduled.from;
                 var to = train.atTime.scheduled.to;
-                self.addTrainToSubsection(from, to, train, "scheduled", lastTime, subsectionsMaxCachedElements);
+                self.addTrainToSubsection(from, to, train, "scheduled", lastTime);
             });
 
         // OBSERVED
@@ -156,7 +156,7 @@
             .forEach(function(train) {
                 var from = train.atTime.observed.from;
                 var to = train.atTime.observed.to;
-                self.addTrainToSubsection(from, to, train, "observed", lastTime, subsectionsMaxCachedElements);
+                self.addTrainToSubsection(from, to, train, "observed", lastTime);
             });
 
 
@@ -174,7 +174,7 @@
 
     };
 
-    global.SectionManager.prototype.addTrainToSubsection = function(from, to, train, type, lastTime, subsectionsMaxCachedElements) {
+    global.SectionManager.prototype.addTrainToSubsection = function(from, to, train, type, lastTime) {
         /* Register train on subsection. Train will also be registered in cache used to compute delay based on last trains on subsection.
          */
         const answered = this.sections.find(function(section) {
@@ -228,8 +228,8 @@
             cachedTrainsContainer.push(cache);
 
             // finally, purge cache if max size is reached
-            if (cachedTrainsContainer.length > subsectionsMaxCachedElements) {
-                matchingSubsection.atTime[type][cachedDir] = cachedTrainsContainer.slice(cachedTrainsContainer.length - subsectionsMaxCachedElements);
+            if (cachedTrainsContainer.length > global.subsectionsMaxCachedElements) {
+                matchingSubsection.atTime[type][cachedDir] = cachedTrainsContainer.slice(cachedTrainsContainer.length - global.subsectionsMaxCachedElements);
             }
             return true;
         });
