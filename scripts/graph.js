@@ -126,6 +126,12 @@
     };
 
     global.SectionManager.prototype.refreshAtTime = function(unixSeconds, positionedTrains, lastTime) {
+        /* For each subsection, for both directions (back and forth), register trains running on it
+        at a given time (based either on schedule or observed data).
+        Register as well cache of last past trains on given subsection-direction.
+        This information will be used to compute delays per subsection based on last passed trains.
+        */
+
         // "this" keyword will refer to other context in map/forEach loops
         const self = this;
         // First flush previous dir0/1 arrays, and set renderedAtTime
@@ -145,8 +151,8 @@
         positionedTrains
             .filter(function(d) { return global.isActiveScheduled(unixSeconds, d); })
             .forEach(function(train) {
-                var from = train.atTime.scheduled.from;
-                var to = train.atTime.scheduled.to;
+                const from = train.atTime.scheduled.from;
+                const to = train.atTime.scheduled.to;
                 self.addTrainToSubsection(from, to, train, "scheduled", lastTime);
             });
 
@@ -154,8 +160,8 @@
         positionedTrains
             .filter(function(d) { return global.isActiveObserved(unixSeconds, d); })
             .forEach(function(train) {
-                var from = train.atTime.observed.from;
-                var to = train.atTime.observed.to;
+                const from = train.atTime.observed.from;
+                const to = train.atTime.observed.to;
                 self.addTrainToSubsection(from, to, train, "observed", lastTime);
             });
 
@@ -170,7 +176,6 @@
                 })
             });
         }
-
 
     };
 

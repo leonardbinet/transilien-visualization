@@ -1,10 +1,8 @@
 (function(global) {
 
-    const scale = 20;
-
     const distScale = d3.scale.linear()
         .domain([0, 100])
-        .range([0.15 * scale, 0.7 * scale])
+        .range([0.15 * global.scale, 0.7 * global.scale])
 
     // create svg path from array of points
     const encodeSvgLine = d3.svg.line()
@@ -237,7 +235,7 @@
     }
 
     // Handle when the mouse is moved over a particular time on the horizon/color band chart
-    global.renderJam = function(selector, transitionDisabled, state) {
+    global.renderJam = function(transitionDisabled, state) {
 
         // ARGS PARSING
         var ttime = state.transitionTime;
@@ -245,20 +243,20 @@
 
         // INITIAL DRAWING
         // tell the glyph to redraw
-        d3.select(selector).selectAll('path.dir0')
+        d3.select(global.svgSelector).selectAll('path.dir0')
             .transition()
             .duration(ttime)
             .attr('fill', mapGlyphSegmentColor.bind(this, "dir0", state.lastTime))
             .attr('d', mapGlyphSegmentVertices.bind(this, "dir0"));
 
-        d3.select(selector).selectAll('path.dir1')
+        d3.select(global.svgSelector).selectAll('path.dir1')
             .transition()
             .duration(ttime)
             .attr('fill', mapGlyphSegmentColor.bind(this, "dir1", state.lastTime))
             .attr('d', mapGlyphSegmentVertices.bind(this, "dir1"));
     }
 
-    global.drawInitialSubsectionsJam = function(selector, sections, lastTime) {
+    global.drawInitialSubsectionsJam = function(sections, state) {
         // INITIAL DRAWING
 
         // *************************************************************/
@@ -281,11 +279,11 @@
         }
         */
 
-        var subsections = [].concat.apply([], sections.map(function(section) { return section.subsections; }));
+        const subsections = [].concat.apply([], sections.map(function(section) { return section.subsections; }));
 
         // VIZ CREATION
         // create connection groups
-        var glyphSegmentOutlines = d3.select(selector).selectAll('.connect')
+        const glyphSegmentOutlines = d3.select(global.svgSelector).selectAll('.connect')
             .data(subsections)
             .enter()
             .append('g')
@@ -311,7 +309,7 @@
                     subsection: d
                 };
             })
-            .attr('fill', mapGlyphSegmentColor.bind(this, "dir0", lastTime))
+            .attr('fill', mapGlyphSegmentColor.bind(this, "dir0", state.lastTime))
             .attr('d', mapGlyphSegmentVertices.bind(this, "dir0"))
 
         // DIR1 to -> from PATH
@@ -335,7 +333,7 @@
 
                 };
             })
-            .attr('fill', mapGlyphSegmentColor.bind(this, "dir1", lastTime))
+            .attr('fill', mapGlyphSegmentColor.bind(this, "dir1", state.lastTime))
             .attr('d', mapGlyphSegmentVertices.bind(this, "dir1"))
 
     };

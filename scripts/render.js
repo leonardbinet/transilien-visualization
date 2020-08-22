@@ -14,8 +14,8 @@
         state.hoveredStation = null;
     }
 
-    global.drawStations = function(state, selector, stations) {
-        d3.select(selector).selectAll(".station")
+    global.drawStations = function(state, stations) {
+        d3.select(global.svgSelector).selectAll(".station")
             .data(stations, function(d) { return d.stop_id })
             .enter()
             .append("circle")
@@ -28,13 +28,13 @@
             .on('click', function(d) { console.log(d); })
     }
 
-    global.drawSections = function(selector, sections) {
+    global.drawSections = function(sections) {
         const lineFunction = d3.svg.line()
             .x(function(d) { if (d) { return d.lon; } })
             .y(function(d) { if (d) { return d.lat; } })
             .interpolate("cardinal");
 
-        d3.select(selector).selectAll(".section")
+        d3.select(global.svgSelector).selectAll(".section")
             .data(sections, function(d) { return d.name })
             .enter()
             .append("path")
