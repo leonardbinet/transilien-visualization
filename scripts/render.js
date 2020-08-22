@@ -1,4 +1,13 @@
 (function (global) {
+  global.toolTipInit = function () {
+    // Define the div for the tooltip
+    d3.select("body")
+      .append("div")
+      .attr("class", "tooltip")
+      .attr("id", global.toolTipId)
+      .style("opacity", 0);
+  };
+
   function infoPanel(state) {
     $("#nbNotYetTrains").text(state.notYet.length);
     $("#nbActiveTrains").text(state.active.length);
@@ -239,6 +248,14 @@
       global.parseDatatableTrain.bind(this, type)
     );
     global.updateTableData(activeDatatableFormat);
+  };
+
+  global.getColorScale = function () {
+    return d3.scale
+      .linear()
+      .interpolate(d3.interpolateLab)
+      .domain([-300, 60, 600])
+      .range(["rgb(0, 104, 55)", "rgb(255, 255, 255)", "rgb(165, 0, 38)"]);
   };
 
   function drawTrainsAtTime(

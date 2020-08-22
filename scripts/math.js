@@ -39,4 +39,37 @@
     );
     return distance;
   };
+
+  function stationWeightedLastDelays(stopId, direction, lastNSeconds) {
+    // Not yet implemented, for now random
+    return Math.random() * 30;
+  }
+
+  // SCALING FUNCTION
+  global.setScale = function (stations, h, w, hborder, wborder) {
+    // Set scales for GPS coordinates placed on SVG object
+    const x = d3.scale
+      .linear()
+      .domain(
+        d3.extent(stations, function (station) {
+          return station.lon;
+        })
+      )
+      .range([wborder, w - wborder]);
+
+    const y = d3.scale
+      .linear()
+      .domain(
+        d3.extent(stations, function (station) {
+          return station.lat;
+        })
+      )
+      // inverted range because of coordinates inverted
+      .range([h - hborder, hborder]);
+
+    return {
+      xScale: x,
+      yScale: y,
+    };
+  };
 })(window.H);

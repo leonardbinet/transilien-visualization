@@ -1,173 +1,6 @@
 (function (global) {
   "use strict";
-  /*
-    TODO: detail main steps
-    */
 
-  // PATH VIZ
-  // STATIONS OBSERVED DELAYS
-  function stationWeightedLastDelays(stopId, direction, lastNSeconds) {
-    // Not yet implemented, for now random
-    return Math.random() * 30;
-  }
-
-  // SCALING FUNCTION
-  function setScale(stations, h, w, hborder, wborder) {
-    // Set scales for GPS coordinates placed on SVG object
-    var x = d3.scale
-      .linear()
-      .domain(
-        d3.extent(stations, function (station) {
-          return station.lon;
-        })
-      )
-      .range([wborder, w - wborder]);
-    global.xScale = x;
-
-    var y = d3.scale
-      .linear()
-      .domain(
-        d3.extent(stations, function (station) {
-          return station.lat;
-        })
-      )
-      // inverted range because of coordinates inverted
-      .range([h - hborder, hborder]);
-    global.yScale = y;
-  }
-
-  // HOVER HIGHLIGHT FUNCTIONS
-  /*
-    For trains: 
-    - one tooltip, text, position and opacity according to hovered train
-    */
-  function toolTipInit() {
-    // Define the div for the tooltip
-    d3.select("body")
-      .append("div")
-      .attr("class", "tooltip")
-      .attr("id", global.toolTipId)
-      .style("opacity", 0);
-  }
-
-  // COLOR
-  global.delayMapColorScale = d3.scale
-    .linear()
-    .interpolate(d3.interpolateLab)
-    .domain([-300, 60, 600])
-    .range(["rgb(0, 104, 55)", "rgb(255, 255, 255)", "rgb(165, 0, 38)"]);
-
-  // SLIDER AND TIMER FUNCTIONS
-  function renderTimeSlider(min, max, state) {
-    $("#slider").slider({
-      step: 2,
-      orientation: "horizontal",
-      animate: "slow",
-      value: min + 18000,
-      min: min,
-      max: max,
-      slide: function (event, ui) {
-        $("#slider-text").text(
-          moment(ui.value * 1000).format("MMMM Do YYYY, h:mm:ss a")
-        );
-        $("#slider-title").text(
-          moment(ui.value * 1000).format("MMMM Do YYYY, h:mm:ss a")
-        );
-
-        global.renderAllAtTime(ui.value, true, state.displayScheduled, state);
-        state.lastTime = ui.value;
-      },
-      change: function (event, ui) {
-        $("#slider-text").text(
-          moment(ui.value * 1000).format("MMMM Do YYYY, h:mm:ss a")
-        );
-        $("#slider-title").text(
-          moment(ui.value * 1000).format("MMMM Do YYYY, h:mm:ss a")
-        );
-
-        global.renderAllAtTime(ui.value, false, state.displayScheduled, state);
-        state.lastTime = ui.value;
-      },
-    });
-  }
-
-  function sliderTimerUpdate(state) {
-    // set value
-    // previous time
-    const previous = $("#slider").slider("option", "value");
-
-    $("#slider").slider("value", previous + state.timerAdd);
-    if (state.timerActivated) {
-      setTimeout(sliderTimerUpdate, state.timerDelay, state);
-    }
-  }
-
-  function setButtonInitialState(state) {
-    // Timer button
-    $("#button").on("click", function () {
-      state.timerActivated = !state.timerActivated;
-      sliderTimerUpdate(state);
-      if (state.timerActivated) {
-        $("#button").text("Stop");
-      } else {
-        $("#button").text("Start");
-      }
-    });
-    // Scheduled button
-    $("#scheduled")
-      .closest("label")
-      .on("click", function () {
-        console.log("Display Schedule");
-        state.displayScheduled = 1;
-        state.displayObserved = 0;
-      });
-    // Observed button
-    $("#observed")
-      .closest("label")
-      .on("click", function () {
-        console.log("Display Observed");
-        state.displayObserved = 1;
-        state.displayScheduled = 0;
-      });
-  }
-
-  function renderSpeedSlider(state) {
-    $("#speed").slider({
-      orientation: "horizontal",
-      animate: "slow",
-      value: state.timeSpeed,
-      min: 0,
-      max: 500,
-      slide: function (event, ui) {
-        $("#speed-value").text(ui.value);
-        state.timeSpeed = ui.value;
-        recomputeTiming(state);
-      },
-    });
-  }
-
-  function renderTimerDelaySlider(state) {
-    $("#timer-delay").slider({
-      orientation: "horizontal",
-      animate: "slow",
-      value: state.timerDelay,
-      min: 15,
-      max: 150,
-      slide: function (event, ui) {
-        $("#timer-delay-value").text(ui.value);
-        state.timerDelay = ui.value;
-        recomputeTiming(state);
-      },
-    });
-  }
-
-  function recomputeTiming(state) {
-    state.timerAdd = (state.timerDelay * state.timeSpeed) / 1000; // will add n seconds at each iteration
-    // Transition time (shouldn't be much bigger than timerDelay)
-    state.transitionTime = state.timerDelay * global.smoothness;
-  }
-
-  // EXPRESSIONS HERE: before only function statements
   global
     .requiresData(
       [
@@ -187,6 +20,10 @@
       state.transitionTime = state.timerDelay * global.smoothness;
 
       //// INIT
+
+      // compute once color scale instead at each rendering
+      global.delayMapColorScale = global.getColorScale();
+
       // Init map svg
       d3.select("#map")
         .append("svg")
@@ -225,13 +62,16 @@
           }
         });
       // Compute svg scale given stations positions
-      setScale(
+      const scale = global.setScale(
         parsedStations,
         global.h,
         global.w,
         global.hborder,
         global.wborder
       );
+      global.xScale = scale.xScale;
+      global.yScale = scale.yScale;
+
       // Rescale coordinates of all stations
       state.stations = parsedStations.map(function (station) {
         station.lon = global.xScale(station.lon);
@@ -274,20 +114,8 @@
       state.maxUnixSeconds = d3.max(d3.values(state.trips), function (d) {
         return d.end;
       });
-
-      // RENDERING SLIDERS AND TIMERS
-      // Timer button
-      setButtonInitialState(state);
       // Lasttime init
       state.lastTime = state.minUnixSeconds;
-      // Slider init
-      renderTimeSlider(state.minUnixSeconds, state.maxUnixSeconds, state);
-      // Speed slider
-      renderSpeedSlider(state);
-      // TimerDelay slider
-      renderTimerDelaySlider(state);
-
-      // CHART - ACTIVE TRAINS
       // Computes data along whole day
       state.activeTrainsData = global.preprocessActiveTrainsPerTime(
         state.minUnixSeconds,
@@ -296,6 +124,17 @@
         state.preciseGraph
       );
 
+      // RENDERING SLIDERS AND TIMERS
+      // Timer button
+      global.setButtonInitialState(state);
+      global.renderTimeSlider(
+        state.minUnixSeconds,
+        state.maxUnixSeconds,
+        state
+      );
+      global.renderSpeedSlider(state);
+      global.renderTimerDelaySlider(state);
+
       // Generates chart
       global.generateActiveTrainsChart(
         "#stacked-area-chart-active-trains",
@@ -303,17 +142,11 @@
       );
 
       //// DRAWING STATIONS AND SECTIONS
-      // Sections
-      global.drawSections(state.sections);
-
       // Tooltip hover over Map of trains and stations
-      toolTipInit();
-
-      // Draw subsection jams
+      global.toolTipInit();
+      global.drawSections(state.sections);
       global.drawInitialSubsectionsJam(state.sections, state);
       global.drawStationsNames(state.stations);
-
-      // Draw stations
       global.drawStations(state, state.stations);
     });
 })(window.H);

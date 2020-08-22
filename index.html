@@ -1,116 +1,160 @@
 <!DOCTYPE html>
 <html>
-
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="icon" type="image/png" href="images/train-fav.png" sizes="32x32" />
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="images/train-fav.png"
+      sizes="32x32"
+    />
     <title>Ligne H</title>
-    <link rel="stylesheet" href="bower_components/jquery-ui/themes/base/jquery-ui.css">
-    <link rel="stylesheet" href="bower_components/c3/c3.css">
-    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="bower_components/datatables.net-dt/css/jquery.dataTables.min.css">
+    <link
+      rel="stylesheet"
+      href="bower_components/jquery-ui/themes/base/jquery-ui.css"
+    />
+    <link rel="stylesheet" href="bower_components/c3/c3.css" />
+    <link
+      rel="stylesheet"
+      href="bower_components/bootstrap/dist/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="bower_components/datatables.net-dt/css/jquery.dataTables.min.css"
+    />
     <!-- Custom styles -->
-    <link rel="stylesheet" href="styles/main.css">
-</head>
+    <link rel="stylesheet" href="styles/main.css" />
+  </head>
 
-<body>
+  <body>
     <!-- Nav bar -->
     <nav class="navbar navbar-inverse navbar-fixed-top">
-        <div class="container">
-            <div class="navbar-header">
-                <a class="navbar-brand" href="#">Transilien's H line</a>
-            </div>
-            <div id="navbar" class="navbar-collapse collapse">
-            </div>
-            <!--/.navbar-collapse -->
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">Transilien's H line</a>
         </div>
+        <div id="navbar" class="navbar-collapse collapse"></div>
+        <!--/.navbar-collapse -->
+      </div>
     </nav>
     <!-- Main map section -->
     <section class="white">
-        <div class="container-fluid">
-            <div class="row">
-                <!-- Map -->
-                <div id="map" class="col-md-8">
-                </div>
-                <!-- Information panel -->
-                <div class="col-md-4">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Traffic status</h3>
-                        </div>
-                        <!-- List group -->
-                        <ul class="list-group">
-                            <li class="list-group-item">
-                                <button id="button" type="button" class="btn btn-default" data-toggle="button" aria-pressed="false" autocomplete="off">
-									Start
-								</button>
-                            </li>
-                            <li class="list-group-item">
-                                <div class="btn-group" data-toggle="buttons">
-                                    <label class="btn btn-default">
-										<input type="radio" name="options" id="scheduled" autocomplete="off"> Scheduled
-									</label>
-                                    <label class="btn btn-default active">
-										<input type="radio" name="options" id="observed" autocomplete="off" checked> Observed
-									</label>
-                                </div>
-                            </li>
-                            <li class="list-group-item">Number of trains not departed yet: <b id="nbNotYetTrains"></b></li>
-                            <li class="list-group-item">
-                                Number of active trains: <b id="nbActiveTrains"></b> (with <b id="nbDisplayError"></b> errors of display)
-                            </li>
-                            <li class="list-group-item">Number of arrived trains: <b id="nbFinishedTrains"></b></li>
-                        </ul>
-                    </div>
-                </div>
+      <div class="container-fluid">
+        <div class="row">
+          <!-- Map -->
+          <div id="map" class="col-md-8"></div>
+          <!-- Information panel -->
+          <div class="col-md-4">
+            <div class="panel panel-default">
+              <div class="panel-heading">
+                <h3 class="panel-title">Traffic status</h3>
+              </div>
+              <!-- List group -->
+              <ul class="list-group">
+                <li class="list-group-item">
+                  <button
+                    id="button"
+                    type="button"
+                    class="btn btn-default"
+                    data-toggle="button"
+                    aria-pressed="false"
+                    autocomplete="off"
+                  >
+                    Start
+                  </button>
+                </li>
+                <li class="list-group-item">
+                  <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-default">
+                      <input
+                        type="radio"
+                        name="options"
+                        id="scheduled"
+                        autocomplete="off"
+                      />
+                      Scheduled
+                    </label>
+                    <label class="btn btn-default active">
+                      <input
+                        type="radio"
+                        name="options"
+                        id="observed"
+                        autocomplete="off"
+                        checked
+                      />
+                      Observed
+                    </label>
+                  </div>
+                </li>
+                <li class="list-group-item">
+                  Number of trains not departed yet: <b id="nbNotYetTrains"></b>
+                </li>
+                <li class="list-group-item">
+                  Number of active trains: <b id="nbActiveTrains"></b> (with
+                  <b id="nbDisplayError"></b> errors of display)
+                </li>
+                <li class="list-group-item">
+                  Number of arrived trains: <b id="nbFinishedTrains"></b>
+                </li>
+              </ul>
             </div>
+          </div>
         </div>
+      </div>
     </section>
     <!-- Slider -->
     <section class="grey">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <h4>Time control: <b id="slider-title"></b></h4>
-                    <div id="slider"></div>
-                    <br/>
-                </div>
-                <div class="col-md-6">
-                    <h4>Speed control (real time x<b id="speed-value"></b>)</h4>
-                    <div id="speed"></div>
-                    <br/>
-                </div>
-                <div class="col-md-6">
-                    <h4>Refresh time (every <b id="timer-delay-value"></b> milliseconds, the lower the smoother)</h4>
-                    <div id="timer-delay"></div>
-                    <br/>
-                </div>
-            </div>
+      <div class="container">
+        <div class="row">
+          <div class="col-md-12">
+            <h4>Time control: <b id="slider-title"></b></h4>
+            <div id="slider"></div>
+            <br />
+          </div>
+          <div class="col-md-6">
+            <h4>Speed control (real time x<b id="speed-value"></b>)</h4>
+            <div id="speed"></div>
+            <br />
+          </div>
+          <div class="col-md-6">
+            <h4>
+              Refresh time (every <b id="timer-delay-value"></b> milliseconds,
+              the lower the smoother)
+            </h4>
+            <div id="timer-delay"></div>
+            <br />
+          </div>
         </div>
+      </div>
     </section>
     <!-- Active trains table -->
     <section class="white">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <h3>Active trains</h3>
-                    <table id="active-trains-table" class="display" width="100%"></table>
-                </div>
-            </div>
+      <div class="container">
+        <div class="row">
+          <div class="col-md-12">
+            <h3>Active trains</h3>
+            <table
+              id="active-trains-table"
+              class="display"
+              width="100%"
+            ></table>
+          </div>
         </div>
+      </div>
     </section>
     <!-- Active trains during day -->
     <section class="grey">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <h3>Number of active trains during day compared to observed delay</h3>
-                    <div id="stacked-area-chart-active-trains">
-                    </div>
-                </div>
-            </div>
+      <div class="container">
+        <div class="row">
+          <div class="col-md-12">
+            <h3>
+              Number of active trains during day compared to observed delay
+            </h3>
+            <div id="stacked-area-chart-active-trains"></div>
+          </div>
         </div>
+      </div>
     </section>
     <!-- 3rd Party Dependencies -->
     <script src="bower_components/es6-shim/es6-shim.js"></script>
@@ -126,10 +170,10 @@
     <script src="bower_components/c3/c3.js"></script>
     <!-- Custom -->
     <script>
-        // on load, init global variable as H
-        window.H = {
-            state: {}
-        };
+      // on load, init global variable as H
+      window.H = {
+        state: {},
+      };
     </script>
     <script src="scripts/constant.js"></script>
     <script src="scripts/common.js"></script>
@@ -141,7 +185,7 @@
     <script src="scripts/activeTrainsChart.js"></script>
     <script src="scripts/dataloader.js"></script>
     <script src="scripts/graph.js"></script>
+    <script src="scripts/control.js"></script>
     <script src="scripts/main.js"></script>
-</body>
-
+  </body>
 </html>
