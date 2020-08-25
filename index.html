@@ -39,11 +39,15 @@
       </div>
     </nav>
     <!-- Main map section -->
+
     <section class="white">
       <div class="container-fluid">
         <div class="row">
           <!-- Map -->
-          <div id="map" class="col-md-8"></div>
+          <div id="map" class="col-md-8">
+            <svg id="map-svg"></svg>
+          </div>
+
           <!-- Information panel -->
           <div class="col-md-4">
             <div class="panel panel-default">
@@ -119,8 +123,7 @@
           </div>
           <div class="col-md-6">
             <h4>
-              Refresh time (every <b id="timer-delay-value"></b> milliseconds,
-              the lower the smoother)
+              Refresh time (every <b id="timer-delay-value"></b> milliseconds)
             </h4>
             <div id="timer-delay"></div>
             <br />
@@ -156,6 +159,8 @@
         </div>
       </div>
     </section>
+    <!-- Tooltip -->
+    <div id="tooltip" , class="tooltip tooltip-hidden"></div>
     <!-- 3rd Party Dependencies -->
     <script src="bower_components/es6-shim/es6-shim.js"></script>
     <script src="bower_components/underscore/underscore.js"></script>
@@ -169,23 +174,6 @@
     <script src="bower_components/d3-tip/index.js"></script>
     <script src="bower_components/c3/c3.js"></script>
     <!-- Custom -->
-    <script>
-      // on load, init global variable as H
-      window.H = {
-        state: {},
-      };
-    </script>
-    <script src="scripts/constant.js"></script>
-    <script src="scripts/common.js"></script>
-    <script src="scripts/math.js"></script>
-    <script src="scripts/render.js"></script>
-    <script src="scripts/parsing.js"></script>
-    <script src="scripts/sectionJam.js"></script>
-    <script src="scripts/tables.js"></script>
-    <script src="scripts/activeTrainsChart.js"></script>
-    <script src="scripts/dataloader.js"></script>
-    <script src="scripts/graph.js"></script>
-    <script src="scripts/control.js"></script>
-    <script src="scripts/main.js"></script>
+    <script src="scripts/main.js" type="module"></script>
   </body>
 </html>

@@ -1,5 +1,4 @@
-(function (global) {
-  global.tripsWithPassedStations = function (state) {
+export function tripsWithPassedStations(state) {
     // for troubleshooting, returns list of trips with identified passing stations
     return state.trips.filter(function (trip) {
       // among all stops
@@ -15,7 +14,7 @@
     });
   };
 
-  global.tripsWithPrecisePathError = function (state) {
+export function tripsWithPrecisePathError(state) {
     // for troubleshooting, returns list of trips with identified passing stations
     const tripsWithErrors = state.trips.filter(function (trip) {
       // that among all stops
@@ -30,7 +29,7 @@
     return tripsWithErrors;
   };
 
-  global.activeTripsWithoutPosAtTime = function (state) {
+export function activeTripsWithoutPosAtTime(state) {
     // to know which trains haven't been displayed because of errors
     return state.active.filter(function (trip) {
       if (!state.positionedTrains.includes(trip)) {
@@ -38,4 +37,3 @@
       }
     });
   };
-})(window.H, window.H.state);

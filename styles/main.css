@@ -95,6 +95,11 @@ text {
   border: 0px;
   border-radius: 4px;
   pointer-events: none;
+  opacity: 0.66;
+}
+
+.tooltip-hidden {
+  opacity: 0;
 }
 
 td {
