@@ -63,14 +63,14 @@
 
   function placeWithOffset(from, to, ratio) {
     // extrapolate position from trip ratio, previous station, and next station
-    var fromPos = { lon: from.lon, lat: from.lat };
-    var toPos = { lon: to.lon, lat: to.lat };
+    const fromPos = { lon: from.lon, lat: from.lat };
+    const toPos = { lon: to.lon, lat: to.lat };
 
-    var midpoint = d3.interpolate(
+    const midpoint = d3.interpolate(
       [fromPos.lon, fromPos.lat],
       [toPos.lon, toPos.lat]
     )(ratio);
-    var angle =
+    const angle =
       Math.atan2(toPos.lat - fromPos.lat, toPos.lon - fromPos.lon) +
       Math.PI / 2;
     return [
@@ -273,7 +273,7 @@
     }
 
     // DISPLAY TRAINS
-    var trainsGroups = d3
+    const trainsGroups = d3
       .select("#map-svg")
       .selectAll(".train")
       .data(positionedTrains, function (d) {
@@ -415,24 +415,18 @@
         return d.stop_id.slice(10);
       })
       .attr("text-anchor", function (d) {
-        var station = global.visibleStations.find(function (st) {
+        const station = global.visibleStations.find(function (st) {
           return st.id === d.stop_id;
         });
-        var reverse;
-        if (station) {
-          reverse = station.reverse;
-        }
+        const reverse = station ? station.reverse : null;
         return reverse ? "end" : "start";
       })
       .attr("transform", function (d) {
-        var station = global.visibleStations.find(function (st) {
+        const station = global.visibleStations.find(function (st) {
           return st.id === d.stop_id;
         });
-        var reverse;
-        if (station) {
-          reverse = station.reverse;
-        }
-        var offset = reverse ? -5 : 5;
+        const reverse = station ? station.reverse : null;
+        const offset = reverse ? -5 : 5;
         return "translate(" + (d.lon + offset) + "," + d.lat + ") rotate(-15)";
       });
   };
@@ -450,8 +444,8 @@
         break;
       }
     }
-    var sfrom = train.stops[i];
-    var sto = train.stops[i + 1];
+    const sfrom = train.stops[i];
+    const sto = train.stops[i + 1];
     var sacceptedEdge, sratio, spos, sfromStop, stoStop;
 
     if (sfrom && sto) {
@@ -482,8 +476,8 @@
       }
     }
 
-    var efrom = train.stops[j];
-    var eto = train.stops[j + 1];
+    const efrom = train.stops[j];
+    const eto = train.stops[j + 1];
     var eacceptedEdge,
       eratio,
       epos,

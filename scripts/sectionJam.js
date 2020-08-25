@@ -52,8 +52,7 @@
       if (freshness > global.maxFreshness) {
         return 0;
       }
-      var weight = 1 - freshness / global.maxFreshness;
-      return weight;
+      return 1 - freshness / global.maxFreshness;
     });
     const weightedValues = trainsDelayEvolutions.map(function (val, i) {
       return val * delayWeights[i];
@@ -127,7 +126,7 @@
   }
 
   function closestClockwise(thisLine, otherLines) {
-    var origAngle = angle(thisLine.segment);
+    const origAngle = angle(thisLine.segment);
     otherLines = otherLines || [];
     var result = null;
     var minAngle = Infinity;
@@ -146,14 +145,14 @@
   }
 
   function closestCounterClockwise(thisLine, otherLines) {
-    var origAngle = angle(thisLine.segment);
+    const origAngle = angle(thisLine.segment);
     otherLines = otherLines || [];
     var result = null;
     var minAngle = Infinity;
     otherLines.forEach(function (other) {
-      var thisAngle = angle(other.segment);
-      var diff = normalize(origAngle - thisAngle);
-      var absDiff = Math.abs(diff);
+      const thisAngle = angle(other.segment);
+      const diff = normalize(origAngle - thisAngle);
+      const absDiff = Math.abs(diff);
       if (absDiff < 0.2 || Math.abs(absDiff - Math.PI) < 0.2) {
         return;
       }
@@ -166,8 +165,8 @@
   }
 
   function segmentsAreSame(a, b) {
-    var sega = JSON.stringify(a.segment);
-    var segb = JSON.stringify(b.segment);
+    const sega = JSON.stringify(a.segment);
+    const segb = JSON.stringify(b.segment);
     return sega === segb;
   }
 
@@ -177,7 +176,7 @@
 
   function angle(source, dest) {
     if (arguments.length === 1) {
-      var origP1 = source;
+      const origP1 = source;
       source = origP1[0];
       dest = origP1[1];
     }
@@ -186,18 +185,18 @@
 
   function offsetPoints(link) {
     // Here is decided how large the rectangle is at points 3 and 4
-    var split = link.ids.split("|").map(function (a) {
+    const split = link.ids.split("|").map(function (a) {
       return distScale(global.subsectionWidth || 0);
     });
-    var p1 = link.segment[0];
-    var p2 = link.segment[1];
-    var lineAngle = angle(p1, p2);
-    var angle90 = lineAngle + Math.PI / 2;
-    var p3 = [
+    const p1 = link.segment[0];
+    const p2 = link.segment[1];
+    const lineAngle = angle(p1, p2);
+    const angle90 = lineAngle + Math.PI / 2;
+    const p3 = [
       p2[0] + split[1] * Math.cos(angle90),
       p2[1] + split[1] * Math.sin(angle90),
     ];
-    var p4 = [
+    const p4 = [
       p1[0] + split[0] * Math.cos(angle90),
       p1[1] + split[0] * Math.sin(angle90),
     ];
@@ -215,12 +214,12 @@
   }
 
   function intersect(line1, line2) {
-    var m1 = slope(line1);
-    var b1 = intercept(line1);
-    var m2 = slope(line2);
-    var b2 = intercept(line2);
-    var m1Infinite = m1 === Infinity || m1 === -Infinity;
-    var m2Infinite = m2 === Infinity || m2 === -Infinity;
+    const m1 = slope(line1);
+    const b1 = intercept(line1);
+    const m2 = slope(line2);
+    const b2 = intercept(line2);
+    const m1Infinite = m1 === Infinity || m1 === -Infinity;
+    const m2Infinite = m2 === Infinity || m2 === -Infinity;
     var x, y;
     if ((m1Infinite && m2Infinite) || Math.abs(m2 - m1) < 0.01) {
       return null;
@@ -241,25 +240,25 @@
   }
 
   function mapGlyphSegmentVertices(direction, link) {
-    var p1 = link.segment[0];
-    var p2 = link.segment[1];
-    var offsets = offsetPoints(link);
+    const p1 = link.segment[0];
+    const p2 = link.segment[1];
+    const offsets = offsetPoints(link);
     var p3 = offsets[1];
     var p4 = offsets[0];
     var first;
 
     first = closestClockwise(link, link.outgoing);
     if (first && link.outgoing.length > 1) {
-      var outgoingPoints = offsetPoints(first);
-      var newP3 = intersect(offsets, outgoingPoints);
+      const outgoingPoints = offsetPoints(first);
+      const newP3 = intersect(offsets, outgoingPoints);
       if (newP3) {
         p3 = newP3;
       }
     }
     first = closestCounterClockwise(link, link.incoming);
     if (first && link.incoming.length > 1) {
-      var incomingPoints = offsetPoints(first);
-      var newP4 = intersect(offsets, incomingPoints);
+      const incomingPoints = offsetPoints(first);
+      const newP4 = intersect(offsets, incomingPoints);
       if (newP4) {
         p4 = newP4;
       }
@@ -269,11 +268,7 @@
 
   // Handle when the mouse is moved over a particular time on the horizon/color band chart
   global.renderJam = function (transitionDisabled, state) {
-    // ARGS PARSING
-    var ttime = state.transitionTime;
-    if (transitionDisabled) {
-      ttime = 0;
-    }
+    const ttime = transitionDisabled ? 0 : state.transitionTime;
 
     // INITIAL DRAWING
     // tell the glyph to redraw

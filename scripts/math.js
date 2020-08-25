@@ -1,7 +1,7 @@
 (function (global) {
   global.cumulativeSum = function (arr) {
-    var builder = function (acc, n) {
-      var lastNum = acc.length > 0 ? acc[acc.length - 1] : 0;
+    const builder = function (acc, n) {
+      const lastNum = acc.length > 0 ? acc[acc.length - 1] : 0;
       acc.push(lastNum + n);
       return acc;
     };
@@ -19,25 +19,22 @@
   };
 
   global.mean = function (arr) {
-    var sum = global.sum(arr);
+    const sum = global.sum(arr);
     return sum / arr.length;
   };
 
   global.weightedMean = function (arrVals, arrWeights) {
-    var weightedValues = arrVals.map(function (val, i) {
+    const weightedValues = arrVals.map(function (val, i) {
       return val * arrWeights[i];
     });
-    var sum = global.sum(weightedValues);
-    var sumWeights = global.sum(arrWeights);
+    const sum = global.sum(weightedValues);
+    const sumWeights = global.sum(arrWeights);
     return sum / sumWeights;
   };
 
   global.stationsDistance = function (from, to) {
     // scaled because everything is scaled at the beginning
-    var distance = Math.sqrt(
-      (from.lon - to.lon) ** 2 + (from.lat - to.lat) ** 2
-    );
-    return distance;
+    return Math.sqrt((from.lon - to.lon) ** 2 + (from.lat - to.lat) ** 2);
   };
 
   function stationWeightedLastDelays(stopId, direction, lastNSeconds) {

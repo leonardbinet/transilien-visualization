@@ -24,8 +24,8 @@
         */
 
     for (var i = 0; i < train.stops.length - 1; i++) {
-      var fromStop = train.stops[i];
-      var toStop = train.stops[i + 1];
+      const fromStop = train.stops[i];
+      const toStop = train.stops[i + 1];
 
       // Find path between two consecutive stops
       fromStop.nextPath = graph
@@ -46,22 +46,22 @@
       // Find total distance between stops
       // Sum of all subsections, and list of subsections distances
       var totalDistance = 0;
-      var distancesList = [];
+      const distancesList = [];
       // add beginning and end
-      var iniDist = global.stationsDistance(
+      const iniDist = global.stationsDistance(
         fromStop.stop,
         fromStop.nextPath[0]
       );
       totalDistance += iniDist;
       distancesList.push(iniDist);
-      var endDist = global.stationsDistance(
+      const endDist = global.stationsDistance(
         toStop.stop,
         fromStop.nextPath[fromStop.nextPath.length - 1]
       );
       totalDistance += endDist;
       // distancesList.push(endDist);
       for (var m = 0; m < fromStop.nextPath.length - 1; m++) {
-        var subsectionDistance = global.stationsDistance(
+        const subsectionDistance = global.stationsDistance(
           fromStop.nextPath[m],
           fromStop.nextPath[m + 1]
         );
@@ -78,7 +78,7 @@
         })
       );
       // assign spent time to ...
-      var timeList = fromStop.ratioList.map(function (r) {
+      const timeList = fromStop.ratioList.map(function (r) {
         return r * fromStop.sectionTimeSecs;
       });
       // and finally assign Timestamp: seconds + initial timestamp to ...
@@ -98,7 +98,7 @@
         }
         
         */
-    var guessedStops = [];
+    const guessedStops = [];
     train.stops.forEach(function (stop) {
       // find guessed passed stations
       // if not found stop
@@ -107,12 +107,11 @@
       }
 
       for (var h = 0; h < stop.nextPath.length; h++) {
-        var g = {
+        guessedStops.push({
           stop: stop.nextPath[h],
           scheduledTime: stop.timestampList[h],
           realStop: false,
-        };
-        guessedStops.push(g);
+        });
       }
     });
     train.stops = train.stops.concat(guessedStops);
@@ -243,11 +242,11 @@
       return Object.keys(o)[0];
     });
     // Replace by real stations objects
-    var points = points.map(global.stopIdToStop.bind(this, stations));
-    var endPoints = [points[0], points[points.length - 1]];
-    var subsections = [];
+    points = points.map(global.stopIdToStop.bind(this, stations));
+    const endPoints = [points[0], points[points.length - 1]];
+    const subsections = [];
     for (var p = 0; p < points.length - 1; p++) {
-      var subsection = {
+      const subsection = {
         from: points[p],
         to: points[p + 1],
         name: points[p].name + " -> " + points[p + 1].name,
@@ -292,15 +291,15 @@
 
   global.parseTrip = function (stations, d, i) {
     // if >10000, it is an error of date parsing
-    var secs = +d.end - +d.begin;
+    const secs = +d.end - +d.begin;
     if (secs > 10000) {
       return;
     }
 
     var stops = d.stops.map(function (stop) {
-      var fullStop = {};
+      const fullStop = {};
       // checks if stop_id is among imported stations
-      var realStop = global.stopIdToStop(stations, stop.stop_id);
+      const realStop = global.stopIdToStop(stations, stop.stop_id);
       if (!realStop) {
         // if not stop is ignored and trip is added to errors
         // state.errors.notFoundStops[stop.stop_id].push(d);
@@ -344,16 +343,16 @@
   global.parseDatatableTrain = function (type, train) {
     // type is either "observed" or "scheduled"
     // Subsection name
-    var cfrom = train.atTime[type].from.name;
-    var cto = train.atTime[type].to.name;
-    var subsection = cfrom + " -> " + cto;
+    const cfrom = train.atTime[type].from.name;
+    const cto = train.atTime[type].to.name;
+    const subsection = cfrom + " -> " + cto;
 
     // From
-    var from = train.stops[0].stop.name;
+    const from = train.stops[0].stop.name;
     // To
-    var to = train.stops[train.stops.length - 1].stop.name;
+    const to = train.stops[train.stops.length - 1].stop.name;
 
-    var estimatedDelay = Math.floor(train.atTime[type].estimatedDelay);
+    const estimatedDelay = Math.floor(train.atTime[type].estimatedDelay);
     if ("undefined" === typeof estimatedDelay) {
       estimatedDelay = "nan";
     }

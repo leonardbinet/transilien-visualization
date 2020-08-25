@@ -238,7 +238,7 @@
       const currentTrainsContainer = matchingSubsection.atTime[type][direction];
       currentTrainsContainer.push(train);
 
-      var cachedTrainsContainer = matchingSubsection.atTime[type][cachedDir];
+      const cachedTrainsContainer = matchingSubsection.atTime[type][cachedDir];
 
       const cache = {
         lastObservedTimeOnSubsection: lastTime,
@@ -280,8 +280,8 @@
       });
       section.subsections.forEach(function (subsection) {
         // for each subsection
-        var fromStation = subsection.from;
-        var toStation = subsection.to;
+        const fromStation = subsection.from;
+        const toStation = subsection.to;
         if (!fromStation.linkedSubSections.includes(subsection)) {
           fromStation.linkedSubSections.push(subsection);
         }
@@ -294,8 +294,8 @@
     // fill graph with all stations and sections
     sections.forEach(function (section) {
       for (var l = 0; l < section.points.length - 1; l++) {
-        var beginNode = section.points[l].stop_id;
-        var endNode = section.points[l + 1].stop_id;
+        const beginNode = section.points[l].stop_id;
+        const endNode = section.points[l + 1].stop_id;
         graph.addEdge(beginNode, endNode);
       }
     });
